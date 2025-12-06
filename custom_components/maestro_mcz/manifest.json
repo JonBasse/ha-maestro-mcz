@@ -1,0 +1,11 @@
+{
+    "domain": "maestro_mcz",
+    "name": "Maestro MCZ",
+    "codeowners": [],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/yourusername/ha-maestro-mcz",
+    "iot_class": "local_push",
+    "requirements": [],
+    "version": "0.1.0"
+}
