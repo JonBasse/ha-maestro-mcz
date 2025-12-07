@@ -44,7 +44,7 @@ class MaestroController:
     def __init__(self, serial: str, mac: str):
         self._serial = serial
         self._mac = mac
-        self._sio = socketio.AsyncClient(logger=True, engineio_logger=True)
+        self._sio = socketio.AsyncClient(logger=False, engineio_logger=False)
         self._state: dict[str, any] = {}
         self._listeners: list[Callable] = []
         self._connected = False
