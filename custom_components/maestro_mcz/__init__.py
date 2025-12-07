@@ -6,6 +6,8 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+from .const import DOMAIN
+from .maestro.controller import MaestroController
 
 PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.SENSOR, Platform.SWITCH]
 
@@ -14,7 +16,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     hass.data.setdefault(DOMAIN, {})
     
-    controller = MaestroController(entry.data["host"], entry.data["port"])
+    controller = MaestroController(entry.data["serial"], entry.data["mac"])
+        
     # Start connection in background task
     entry.async_create_background_task(hass, controller.connect(), "maestro_connect")
     
