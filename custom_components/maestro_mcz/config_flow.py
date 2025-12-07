@@ -25,39 +25,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step - Choosing connection type."""
-        return self.async_show_menu(
-            step_id="user",
-            menu_options=[CONN_LOCAL, CONN_CLOUD]
-        )
-
-    async def async_step_Local(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle Local connection setup."""
-        errors: dict[str, str] = {}
-        if user_input is not None:
-             return self.async_create_entry(
-                 title=f"Maestro Local ({user_input[CONF_HOST]})", 
-                 data={
-                     "connection_type": "local",
-                     "host": user_input[CONF_HOST],
-                     "port": user_input[CONF_PORT]
-                 }
-            )
-
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_HOST): str,
-                vol.Required(CONF_PORT, default=81): int,
-            }
-        )
-        return self.async_show_form(step_id="Local", data_schema=schema, errors=errors)
-
-    async def async_step_Cloud(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle Cloud connection setup."""
+        """Handle the initial step - Connection setup."""
         errors: dict[str, str] = {}
         if user_input is not None:
              return self.async_create_entry(
@@ -75,4 +43,4 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required("mac", description="MAC Address"): str,
             }
         )
-        return self.async_show_form(step_id="Cloud", data_schema=schema, errors=errors)
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
