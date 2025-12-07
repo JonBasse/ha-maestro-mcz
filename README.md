@@ -44,5 +44,14 @@ This integration stands on the shoulders of giants. A massive thank you to the c
 If you encounter issues, please open an issue in this repository. 
 When reporting bugs, please enable "Enable Debug Logging" in the integration settings and provide the log output.
 
+You can also enable debug logging manually in your `configuration.yaml`:
+
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.maestro_mcz: debug
+```
+
 ---
 *Not affiliated with MCZ Group.*

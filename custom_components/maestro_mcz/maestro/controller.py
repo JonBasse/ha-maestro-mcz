@@ -123,6 +123,7 @@ class MaestroController:
         try:
             if "stringaRicevuta" in data:
                 message = data["stringaRicevuta"]
+                _LOGGER.debug(f"Received cloud message: {message}")
                 parts = message.split('|')
                 if parts and parts[0] == MaestroMessageType.Info.value:
                     self._process_info_frame(parts)
@@ -147,6 +148,7 @@ class MaestroController:
                         self._state["Power"] = stove_state.on_or_off 
         
         if updates:
+            _LOGGER.debug(f"State updates: {updates}")
             self._notify_listeners()
 
     async def send_command(self, command_name: str, value: any):
