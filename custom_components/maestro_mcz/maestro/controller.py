@@ -59,6 +59,8 @@ class MaestroController:
                     self._connected = True
                     self._reconnect_delay = 5 # Reset delay on successful connection
                     _LOGGER.info("Connected to Maestro")
+                    self._notify_listeners()
+
                     
                     # Request initial info
                     await self._request_info()
@@ -72,6 +74,7 @@ class MaestroController:
             except Exception as e:
                 _LOGGER.error(f"Connection error: {e}")
                 self._connected = False
+                self._notify_listeners()
             
             if self._running:
                 _LOGGER.info(f"Reconnecting in {self._reconnect_delay} seconds...")
