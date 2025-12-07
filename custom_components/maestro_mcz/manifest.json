@@ -4,7 +4,8 @@
     "codeowners": [],
     "config_flow": true,
     "dependencies": [],
-    "documentation": "https://github.com/yourusername/ha-maestro-mcz",
+    "documentation": "https://github.com/JonBasse/ha-maestro-mcz",
+    "issue_tracker": "https://github.com/JonBasse/ha-maestro-mcz/issues",
     "iot_class": "local_push",
     "requirements": [],
     "version": "0.1.0"
