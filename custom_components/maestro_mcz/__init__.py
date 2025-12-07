@@ -6,7 +6,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .maestro.controller import MaestroController
+from .maestro.controller import MaestroLocalController, MaestroCloudController
 
 PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.SENSOR, Platform.SWITCH]
 
@@ -15,7 +15,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     hass.data.setdefault(DOMAIN, {})
     
-    controller = MaestroController(entry.data["host"], entry.data["port"])
+    if entry.data.get("connection_type") == "cloud":
+        controller = MaestroCloudController(entry.data["serial"], entry.data["mac"])
+    else:
+        # Default to local
+        controller = MaestroLocalController(
+            entry.data.get("host"), 
+            entry.data.get("port", 81)
+        )
+        
     # Start connection in background task
     entry.async_create_background_task(hass, controller.connect(), "maestro_connect")
     
