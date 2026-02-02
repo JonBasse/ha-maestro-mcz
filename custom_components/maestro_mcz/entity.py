@@ -1,9 +1,9 @@
 """Base entity for Maestro MCZ."""
 from homeassistant.helpers.entity import DeviceInfo, Entity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .maestro.controller import MaestroController
+
 
 class MaestroEntity(Entity):
     """Base class for Maestro Entities."""
@@ -12,7 +12,7 @@ class MaestroEntity(Entity):
         self._controller = controller
         self._attr_has_entity_name = True
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, "maestro_stove")}, # Todo: Add MAC if available
+            identifiers={(DOMAIN, controller.serial)},
             name="Maestro Stove",
             manufacturer="MCZ",
             model="Maestro",

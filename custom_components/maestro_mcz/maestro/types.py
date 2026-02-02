@@ -2,6 +2,7 @@
 from enum import Enum
 from dataclasses import dataclass
 
+
 class MaestroMessageType(Enum):
     """Maestro message type. This information is inside the first frame."""
     Parameters = "00"
@@ -16,20 +17,23 @@ class MaestroMessageType(Enum):
     StringData = "AA"
     Ping = "PING"
 
+
 @dataclass
 class MaestroCommand:
     """Maestro Command definition."""
-    name: str 
+    name: str
     id: int
     command_type: str
     category: str
+
 
 @dataclass
 class MaestroStoveState:
     """Maestro Stove State definition."""
     id: int
     description: str
-    on_or_off: int # 0: Off, 1: On
+    on_or_off: int  # 0: Off, 1: On
+
 
 @dataclass
 class MaestroInformation:
@@ -38,48 +42,48 @@ class MaestroInformation:
     name: str
     message_type: str
 
+
 # Commands List
 MAESTRO_COMMANDS: list[MaestroCommand] = [
-    MaestroCommand('Refresh', 0, 'Refresh', 'Daemon'),
-    MaestroCommand('GetInfo', 0, 'GetInfo', 'GetInfo'),
-    MaestroCommand('Temperature_Setpoint', 42, 'temperature', 'Basic'),
-    MaestroCommand('Boiler_Setpoint', 51, 'temperature', 'Basic'),
-    MaestroCommand('Chronostat', 1111, 'onoff', 'Basic'),
-    MaestroCommand('Chronostat_T1', 1108, 'temperature', 'Basic'),
-    MaestroCommand('Chronostat_T2', 1109, 'temperature', 'Basic'),
-    MaestroCommand('Chronostat_T3', 1110, 'temperature', 'Basic'),
-    MaestroCommand('Power_Level', 36, 'int', 'Basic'),
-    MaestroCommand('Silent_Mode', 45, 'onoff', 'Basic'),
-    MaestroCommand('Active_Mode', 35, 'onoff', 'Basic'),
-    MaestroCommand('Eco_Mode', 41, 'onoff', 'Basic'),
-    MaestroCommand('Sound_Effects', 50, 'onoff', 'Basic'),
-    MaestroCommand('Power', 34, 'onoff40', 'Basic'),
-    MaestroCommand('Fan_State', 37, 'int', 'Basic'),
-    MaestroCommand('DuctedFan1', 38, 'int', 'Basic'),
-    MaestroCommand('DuctedFan2', 39, 'int', 'Basic'),
-    MaestroCommand('Control_Mode', 40, 'onoff', 'Basic'),
-    MaestroCommand('Profile', 149, 'int', 'Basic'),
-    # Untested
-    MaestroCommand('Feeding_Screw', 34, '49', 'Basic'),
-    MaestroCommand('Celsius_Fahrenheit', 49, 'int', 'Basic'),
-    MaestroCommand('Sleep', 57, 'int', 'Basic'),
-    MaestroCommand('Summer_Mode', 58, 'onoff', 'Basic'),
-    MaestroCommand('Pellet_Sensor', 148, 'onoff', 'Basic'),
-    MaestroCommand('Adaptive_Mode', 149, 'onoff', 'Basic'),
-    MaestroCommand('AntiFreeze', 154, 'int', 'Basic'),
-    MaestroCommand('Reset_Active', 2, '255', 'Basic'),
-    MaestroCommand('Reset_Alarm', 1, '255', 'Basic'),
+    MaestroCommand("Refresh", 0, "Refresh", "Daemon"),
+    MaestroCommand("GetInfo", 0, "GetInfo", "GetInfo"),
+    MaestroCommand("Temperature_Setpoint", 42, "temperature", "Basic"),
+    MaestroCommand("Boiler_Setpoint", 51, "temperature", "Basic"),
+    MaestroCommand("Chronostat", 1111, "onoff", "Basic"),
+    MaestroCommand("Chronostat_T1", 1108, "temperature", "Basic"),
+    MaestroCommand("Chronostat_T2", 1109, "temperature", "Basic"),
+    MaestroCommand("Chronostat_T3", 1110, "temperature", "Basic"),
+    MaestroCommand("Power_Level", 36, "int", "Basic"),
+    MaestroCommand("Silent_Mode", 45, "onoff", "Basic"),
+    MaestroCommand("Active_Mode", 35, "onoff", "Basic"),
+    MaestroCommand("Eco_Mode", 41, "onoff", "Basic"),
+    MaestroCommand("Sound_Effects", 50, "onoff", "Basic"),
+    MaestroCommand("Power", 34, "onoff40", "Basic"),
+    MaestroCommand("Fan_State", 37, "int", "Basic"),
+    MaestroCommand("DuctedFan1", 38, "int", "Basic"),
+    MaestroCommand("DuctedFan2", 39, "int", "Basic"),
+    MaestroCommand("Control_Mode", 40, "onoff", "Basic"),
+    MaestroCommand("Profile", 149, "int", "Basic"),
+    MaestroCommand("Feeding_Screw", 34, "int", "Basic"),
+    MaestroCommand("Celsius_Fahrenheit", 49, "int", "Basic"),
+    MaestroCommand("Sleep", 57, "int", "Basic"),
+    MaestroCommand("Summer_Mode", 58, "onoff", "Basic"),
+    MaestroCommand("Pellet_Sensor", 148, "onoff", "Basic"),
+    MaestroCommand("Adaptive_Mode", 149, "onoff", "Basic"),
+    MaestroCommand("AntiFreeze", 154, "int", "Basic"),
+    MaestroCommand("Reset_Active", 2, "int", "Basic"),
+    MaestroCommand("Reset_Alarm", 1, "int", "Basic"),
     # Diagnostics
-    MaestroCommand('Diagnostics', 100, 'onoff', 'Diagnostics'),
-    MaestroCommand('RPM_Fam_Fume', 1, 'int', 'Diagnostics'),
-    MaestroCommand('RPM_WormWheel', 2, 'int', 'Diagnostics'),
-    MaestroCommand('Active', 3, 'int', 'Diagnostics'),
-    MaestroCommand('Ignitor', 4, 'onoff', 'Diagnostics'),
-    MaestroCommand('FrontFan', 5, 'percentage', 'Diagnostics'),
-    MaestroCommand('DuctedFan1', 6, 'percentage', 'Diagnostics'),
-    MaestroCommand('DuctedFan2', 7, 'percentage', 'Diagnostics'),
-    MaestroCommand('Pump_PWM', 8, 'percentage', 'Diagnostics'),
-    MaestroCommand('3wayvalve', 9, 'onoff', 'Diagnostics'),
+    MaestroCommand("Diagnostics", 100, "onoff", "Diagnostics"),
+    MaestroCommand("RPM_Fam_Fume", 1, "int", "Diagnostics"),
+    MaestroCommand("RPM_WormWheel", 2, "int", "Diagnostics"),
+    MaestroCommand("Active", 3, "int", "Diagnostics"),
+    MaestroCommand("Ignitor", 4, "onoff", "Diagnostics"),
+    MaestroCommand("FrontFan", 5, "percentage", "Diagnostics"),
+    MaestroCommand("Diag_DuctedFan1", 6, "percentage", "Diagnostics"),
+    MaestroCommand("Diag_DuctedFan2", 7, "percentage", "Diagnostics"),
+    MaestroCommand("Pump_PWM", 8, "percentage", "Diagnostics"),
+    MaestroCommand("3wayvalve", 9, "onoff", "Diagnostics"),
 ]
 
 # Stove States
@@ -134,36 +138,33 @@ MAESTRO_STOVE_STATES: list[MaestroStoveState] = [
 ]
 
 # Information Fields (Position in Info Frame -> Definition)
-# Note: Position 0 is likely MessageType, so index 1 is first data
+# Position 0 is MessageType, so index 1 is first data field
 MAESTRO_INFO: dict[int, MaestroInformation] = {
-   1: MaestroInformation(1, "Stove_State", 'int'),
-   2: MaestroInformation(2, "Fan_State", 'int'),
-   3: MaestroInformation(3, "DuctedFan1", 'int'),
-   4: MaestroInformation(4, "DuctedFan2", 'int'),
-   5: MaestroInformation(5, "Fume_Temperature", 'temperature'),
-   6: MaestroInformation(6, "Ambient_Temperature", 'temperature'),
-   7: MaestroInformation(7, "Puffer_Temperature", 'temperature'),
-   8: MaestroInformation(8, "Boiler_Temperature", 'temperature'),
-   9: MaestroInformation(9, "NTC3_Temperature", 'temperature'),
-   10: MaestroInformation(10, "Candle_Condition", 'int'),
-   11: MaestroInformation(11, "Active_Set_Point", 'int'),
-   12: MaestroInformation(12, "RPM_Fam_Fume", 'int'),
-   13: MaestroInformation(13, "RPM_WormWheel", 'int'),
-   14: MaestroInformation(14, "T3_Temperature", 'temperature'), # Back return
-   # ... I will populate the rest based on assumption or need.
-   # Many were not explicitly listed in the python dump I read but are implied by the iterator in process_infostring 
-   # Actually the dump had some:
-   52: MaestroInformation(52, "WifiSondeTemperature1", 'int'),
-   53: MaestroInformation(53, "WifiSondeTemperature2", 'int'),
-   54: MaestroInformation(54, "WifiSondeTemperature3", 'int'),
-   55: MaestroInformation(55, "Unknown", 'int'),
-   56: MaestroInformation(56, "SetPuffer", 'int'),
-   57: MaestroInformation(57, "SetBoiler", 'int'),
-   58: MaestroInformation(58, "SetHealth", 'int'),
-   59: MaestroInformation(59, "Return_Temperature", 'temperature'),
-   60: MaestroInformation(60, "AntiFreeze", 'onoff'),
+    1: MaestroInformation(1, "Stove_State", "int"),
+    2: MaestroInformation(2, "Fan_State", "int"),
+    3: MaestroInformation(3, "DuctedFan1", "int"),
+    4: MaestroInformation(4, "DuctedFan2", "int"),
+    5: MaestroInformation(5, "Fume_Temperature", "temperature"),
+    6: MaestroInformation(6, "Ambient_Temperature", "temperature"),
+    7: MaestroInformation(7, "Puffer_Temperature", "temperature"),
+    8: MaestroInformation(8, "Boiler_Temperature", "temperature"),
+    9: MaestroInformation(9, "NTC3_Temperature", "temperature"),
+    10: MaestroInformation(10, "Candle_Condition", "int"),
+    11: MaestroInformation(11, "Active_Set_Point", "int"),
+    12: MaestroInformation(12, "RPM_Fam_Fume", "int"),
+    13: MaestroInformation(13, "RPM_WormWheel", "int"),
+    14: MaestroInformation(14, "T3_Temperature", "temperature"),
+    52: MaestroInformation(52, "WifiSondeTemperature1", "int"),
+    53: MaestroInformation(53, "WifiSondeTemperature2", "int"),
+    54: MaestroInformation(54, "WifiSondeTemperature3", "int"),
+    55: MaestroInformation(55, "Reserved_55", "int"),
+    56: MaestroInformation(56, "SetPuffer", "int"),
+    57: MaestroInformation(57, "SetBoiler", "int"),
+    58: MaestroInformation(58, "SetHealth", "int"),
+    59: MaestroInformation(59, "Return_Temperature", "temperature"),
+    60: MaestroInformation(60, "AntiFreeze", "onoff"),
 }
 
 # Derived commands (virtual)
-MAESTRO_INFO[-1] = MaestroInformation(-1, "Power", 'onoff')
-MAESTRO_INFO[-2] = MaestroInformation(-2, "Diagnostics", 'onoff')
+MAESTRO_INFO[-1] = MaestroInformation(-1, "Power", "onoff")
+MAESTRO_INFO[-2] = MaestroInformation(-2, "Diagnostics", "onoff")

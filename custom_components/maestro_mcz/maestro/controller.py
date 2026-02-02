@@ -1,66 +1,51 @@
-"""Maestro MCZ Controllers."""
-import asyncio
-import aiohttp
-import logging
-import socketio
-from typing import Callable, Optional
-from datetime import datetime
-from abc import ABC, abstractmethod
-
-from .types import (
-    MaestroCommand, 
-    MaestroMessageType, 
-    MAESTRO_COMMANDS, 
-    MAESTRO_STOVE_STATES,
-    MAESTRO_INFO,
-    MaestroStoveState
-)
-
-_LOGGER = logging.getLogger(__name__)
-
 """Maestro MCZ Controller."""
 import asyncio
 import logging
 import socketio
-from typing import Callable, Optional
-from datetime import datetime
+from typing import Any, Callable
 
 from .types import (
-    MaestroCommand, 
-    MaestroMessageType, 
-    MAESTRO_COMMANDS, 
+    MaestroCommand,
+    MaestroMessageType,
+    MAESTRO_COMMANDS,
     MAESTRO_STOVE_STATES,
     MAESTRO_INFO,
-    MaestroStoveState
+    MaestroStoveState,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class MaestroController:
     """Maestro Controller handling Cloud Socket.IO connection."""
-    
+
     URL = "http://app.mcz.it:9000"
 
     def __init__(self, serial: str, mac: str):
         self._serial = serial
         self._mac = mac
         self._sio = socketio.AsyncClient(logger=False, engineio_logger=False)
-        self._state: dict[str, any] = {}
+        self._state: dict[str, Any] = {}
         self._listeners: list[Callable] = []
         self._connected = False
         self._running = False
-        
+
         # Register events
-        self._sio.on('connect', self._on_connect)
-        self._sio.on('disconnect', self._on_disconnect)
-        self._sio.on('rispondo', self._on_rispondo)
+        self._sio.on("connect", self._on_connect)
+        self._sio.on("disconnect", self._on_disconnect)
+        self._sio.on("rispondo", self._on_rispondo)
+
+    @property
+    def serial(self) -> str:
+        """Return the stove serial number."""
+        return self._serial
 
     @property
     def connected(self) -> bool:
         return self._connected
 
     @property
-    def state(self) -> dict[str, any]:
+    def state(self) -> dict[str, Any]:
         return self._state
 
     def add_listener(self, callback: Callable):
@@ -75,22 +60,26 @@ class MaestroController:
             try:
                 callback()
             except Exception as e:
-                _LOGGER.error(f"Error in listener: {e}")
+                _LOGGER.error("Error in listener: %s", e)
+
+    async def connect_once(self):
+        """Attempt a single connection to MCZ Cloud. Raises on failure."""
+        _LOGGER.info("Connecting to MCZ Cloud at %s for Serial %s", self.URL, self._serial)
+        await self._sio.connect(self.URL)
 
     async def connect(self):
-        """Connect to MCZ Cloud."""
+        """Connect to MCZ Cloud with automatic reconnection."""
         self._running = True
-        _LOGGER.info(f"Connecting to MCZ Cloud at {self.URL} for Serial {self._serial}")
         while self._running:
             try:
                 if not self._sio.connected:
                     await self._sio.connect(self.URL)
-                    await self._sio.wait() # Wait until disconnected
+                    await self._sio.wait()
             except Exception as e:
-                _LOGGER.error(f"Cloud connection error: {e}")
+                _LOGGER.error("Cloud connection error: %s", e)
                 self._connected = False
                 self._notify_listeners()
-                await asyncio.sleep(10) # Wait before retry
+                await asyncio.sleep(10)
 
     async def disconnect(self):
         self._running = False
@@ -101,14 +90,17 @@ class MaestroController:
         _LOGGER.info("Connected to MCZ Cloud")
         self._connected = True
         self._notify_listeners()
-        
+
         # Handshake/Join
-        await self._sio.emit("join", {
-            "serialNumber": self._serial,
-            "macAddress": self._mac,
-            "type": "Android-App"
-        })
-        
+        await self._sio.emit(
+            "join",
+            {
+                "serialNumber": self._serial,
+                "macAddress": self._mac,
+                "type": "Android-App",
+            },
+        )
+
         # Initial requests
         await self._request_info()
 
@@ -119,16 +111,15 @@ class MaestroController:
 
     async def _on_rispondo(self, data):
         """Handle 'rispondo' event."""
-        # Data format: {'stringaRicevuta': '01|...'} similar to local frame
         try:
             if "stringaRicevuta" in data:
                 message = data["stringaRicevuta"]
-                _LOGGER.debug(f"Received cloud message: {message}")
-                parts = message.split('|')
+                _LOGGER.debug("Received cloud message: %s", message)
+                parts = message.split("|")
                 if parts and parts[0] == MaestroMessageType.Info.value:
                     self._process_info_frame(parts)
         except Exception as e:
-            _LOGGER.error(f"Error processing cloud message: {e}")
+            _LOGGER.error("Error processing cloud message: %s", e)
 
     def _process_info_frame(self, parts: list[str]):
         """Process the Info frame."""
@@ -136,71 +127,85 @@ class MaestroController:
         for i in range(1, len(parts)):
             if i in MAESTRO_INFO:
                 info_def = MAESTRO_INFO[i]
-                raw_value = int(parts[i], 16)
+                try:
+                    raw_value = int(parts[i], 16)
+                except ValueError:
+                    _LOGGER.warning(
+                        "Invalid hex value '%s' at position %d for %s",
+                        parts[i],
+                        i,
+                        info_def.name,
+                    )
+                    continue
                 processed_value = self._convert_value(info_def.message_type, raw_value)
                 self._state[info_def.name] = processed_value
                 updates[info_def.name] = processed_value
-                
+
                 if info_def.name == "Stove_State":
                     stove_state = self._get_stove_state(raw_value)
                     if stove_state:
                         self._state["Stove_State_Desc"] = stove_state.description
-                        self._state["Power"] = stove_state.on_or_off 
-        
+                        self._state["Power"] = stove_state.on_or_off
+
         if updates:
-            _LOGGER.debug(f"State updates: {updates}")
+            _LOGGER.debug("State updates: %s", updates)
             self._notify_listeners()
 
-    async def send_command(self, command_name: str, value: any):
+    async def send_command(self, command_name: str, value: Any):
         """Send command via 'chiedo' event."""
         if not self._sio.connected:
+            _LOGGER.warning("Cannot send command '%s': not connected", command_name)
             return
 
         cmd_def = next((c for c in MAESTRO_COMMANDS if c.name == command_name), None)
         if not cmd_def:
+            _LOGGER.warning("Unknown command: '%s'", command_name)
             return
 
         # Prepare payload
         payload = {
             "serialNumber": self._serial,
             "macAddress": self._mac,
-            "tipoChiamata": 1, 
-            "richiesta": ""
+            "tipoChiamata": 1,
+            "richiesta": "",
         }
 
         if cmd_def.category == "GetInfo":
             payload["tipoChiamata"] = 1
             payload["richiesta"] = "C|RecuperoInfo"
         elif cmd_def.category == "SetDateTime":
-             payload["tipoChiamata"] = 1 
-             payload["richiesta"] = f"C|SalvaDataOra|{value}"
+            payload["tipoChiamata"] = 1
+            payload["richiesta"] = f"C|SalvaDataOra|{value}"
         else:
             if cmd_def.category == "Diagnostics":
                 cmd_header = "C|Diagnostica|"
             else:
                 cmd_header = "C|WriteParametri|"
-            
+
             processed_value = value
-            if value == "ON": processed_value = 1
-            elif value == "OFF": processed_value = 0
+            if value == "ON":
+                processed_value = 1
+            elif value == "OFF":
+                processed_value = 0
             try:
                 processed_value = float(processed_value)
-            except ValueError: pass
-                
-            if cmd_def.command_type == 'temperature':
+            except ValueError:
+                pass
+
+            if cmd_def.command_type == "temperature":
                 processed_value = int(float(processed_value) * 2)
-            elif cmd_def.command_type == 'onoff40':
-                 processed_value = int(processed_value)
-                 if processed_value == 0:
-                     processed_value = 40
-                 else:
-                     processed_value = 1
-            elif cmd_def.command_type == 'onoff' or cmd_def.command_type == 'percentage':
-                 processed_value = int(processed_value)
+            elif cmd_def.command_type == "onoff40":
+                processed_value = int(processed_value)
+                if processed_value == 0:
+                    processed_value = 40
+                else:
+                    processed_value = 1
+            elif cmd_def.command_type in ("onoff", "percentage", "int"):
+                processed_value = int(processed_value)
 
             payload["richiesta"] = f"{cmd_header}{cmd_def.id}|{int(processed_value)}"
 
-        _LOGGER.debug(f"Sending cloud command: {payload}")
+        _LOGGER.debug("Sending cloud command: %s", payload)
         await self._sio.emit("chiedo", payload)
 
     async def _request_info(self):
@@ -210,14 +215,13 @@ class MaestroController:
         if value_type == "temperature":
             return float(value) / 2.0
         elif value_type == "timespan":
-            return value 
+            return value
         elif value_type == "onoff":
             return value == 1
         return value
 
-    def _get_stove_state(self, state_id: int) -> Optional[MaestroStoveState]:
+    def _get_stove_state(self, state_id: int) -> MaestroStoveState | None:
         for s in MAESTRO_STOVE_STATES:
             if s.id == state_id:
                 return s
         return None
-

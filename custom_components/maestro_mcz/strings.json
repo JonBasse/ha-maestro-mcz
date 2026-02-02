@@ -1,0 +1,20 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Connect to MCZ Maestro Stove",
+                "description": "Enter the serial number and MAC address of your MCZ stove. You can find these in the MCZ Maestro app under stove settings.",
+                "data": {
+                    "serial": "Serial Number",
+                    "mac": "MAC Address"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Unable to connect to MCZ Cloud. Please verify your serial number and MAC address."
+        },
+        "abort": {
+            "already_configured": "This stove is already configured."
+        }
+    }
+}

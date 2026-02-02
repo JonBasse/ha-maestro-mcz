@@ -8,6 +8,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .entity import MaestroEntity
+from .maestro.controller import MaestroController
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -15,8 +17,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Maestro switch platform."""
-    controller = hass.data[DOMAIN][entry.entry_id]
-    
+    controller: MaestroController = hass.data[DOMAIN][entry.entry_id]
+
     switches = [
         MaestroSwitch(controller, "Silent_Mode", "Silent Mode", "Silent_Mode"),
         MaestroSwitch(controller, "Eco_Mode", "Eco Mode", "Eco_Mode"),
@@ -25,20 +27,24 @@ async def async_setup_entry(
     ]
     async_add_entities(switches)
 
+
 class MaestroSwitch(MaestroEntity, SwitchEntity):
     """Maestro Switch Entity."""
 
-    def __init__(self, controller, parameter_name: str, name: str, command_name: str):
+    def __init__(self, controller: MaestroController, parameter_name: str, name: str, command_name: str):
         super().__init__(controller)
         self._parameter_name = parameter_name
         self._command_name = command_name
         self._attr_name = name
-        self._attr_unique_id = f"{DOMAIN}_{parameter_name}"
+        self._attr_unique_id = f"{DOMAIN}_{controller.serial}_{parameter_name}"
 
     @property
-    def is_on(self) -> bool:
-        """Return true if switch is on."""
-        return bool(self._controller.state.get(self._parameter_name))
+    def is_on(self) -> bool | None:
+        """Return true if switch is on, None if unknown."""
+        value = self._controller.state.get(self._parameter_name)
+        if value is None:
+            return None
+        return bool(value)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""

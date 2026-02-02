@@ -11,6 +11,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .entity import MaestroEntity
+from .maestro.controller import MaestroController
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -18,8 +20,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Maestro sensor platform."""
-    controller = hass.data[DOMAIN][entry.entry_id]
-    
+    controller: MaestroController = hass.data[DOMAIN][entry.entry_id]
+
     entities = [
         MaestroSensor(controller, "Stove_State_Desc", "Stove State", None),
         MaestroSensor(controller, "Fume_Temperature", "Fume Temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
@@ -28,21 +30,22 @@ async def async_setup_entry(
     ]
     async_add_entities(entities)
 
+
 class MaestroSensor(MaestroEntity, SensorEntity):
     """Maestro Sensor Entity."""
 
     def __init__(
-        self, 
-        controller, 
-        parameter_name: str, 
-        name: str, 
-        device_class: str | None = None,
-        unit_of_measurement: str | None = None
+        self,
+        controller: MaestroController,
+        parameter_name: str,
+        name: str,
+        device_class: SensorDeviceClass | None = None,
+        unit_of_measurement: str | None = None,
     ):
         super().__init__(controller)
         self._parameter_name = parameter_name
         self._attr_name = name
-        self._attr_unique_id = f"{DOMAIN}_{parameter_name}"
+        self._attr_unique_id = f"{DOMAIN}_{controller.serial}_{parameter_name}"
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = unit_of_measurement
         if device_class == SensorDeviceClass.TEMPERATURE:
