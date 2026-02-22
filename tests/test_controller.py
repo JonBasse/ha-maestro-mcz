@@ -237,3 +237,23 @@ class TestReconnectResilience:
 
         controller._sio.wait.assert_awaited_once()
         controller._sio.connect.assert_not_called()
+
+
+class TestDisconnectCleanup:
+    @pytest.mark.asyncio
+    async def test_state_cleared_on_disconnect(self, controller):
+        """State dict must be cleared on disconnect to prevent stale data."""
+        controller._state = {"Ambient_Temperature": 21.5, "Stove_State": 1}
+        await controller._on_disconnect()
+        assert controller._state == {}
+        assert controller._connected is False
+
+    @pytest.mark.asyncio
+    async def test_listeners_notified_on_disconnect(self, controller):
+        """Listeners must be notified when state is cleared on disconnect."""
+        from unittest.mock import MagicMock
+        callback = MagicMock()
+        controller.add_listener(callback)
+        controller._state = {"Ambient_Temperature": 21.5}
+        await controller._on_disconnect()
+        callback.assert_called_once()

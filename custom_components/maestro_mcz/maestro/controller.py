@@ -126,6 +126,7 @@ class MaestroController:
     async def _on_disconnect(self):
         _LOGGER.warning("Disconnected from MCZ Cloud")
         self._connected = False
+        self._state.clear()
         self._notify_listeners()
 
     async def _on_rispondo(self, data):
