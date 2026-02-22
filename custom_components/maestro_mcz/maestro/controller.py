@@ -69,6 +69,9 @@ class MaestroController:
 
     async def connect(self):
         """Connect to MCZ Cloud with automatic reconnection."""
+        if self._running:
+            _LOGGER.warning("Connection loop already running, skipping duplicate")
+            return
         self._running = True
         while self._running:
             try:

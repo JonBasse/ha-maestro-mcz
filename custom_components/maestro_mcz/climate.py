@@ -54,7 +54,7 @@ class MaestroClimate(MaestroEntity, ClimateEntity):
 
     @property
     def target_temperature(self) -> float | None:
-        return self._controller.state.get("Temperature_Setpoint")
+        return self._controller.state.get("Active_Set_Point")
 
     @property
     def hvac_mode(self) -> HVACMode:

@@ -150,7 +150,7 @@ MAESTRO_INFO: dict[int, MaestroInformation] = {
     8: MaestroInformation(8, "Boiler_Temperature", "temperature"),
     9: MaestroInformation(9, "NTC3_Temperature", "temperature"),
     10: MaestroInformation(10, "Candle_Condition", "int"),
-    11: MaestroInformation(11, "Active_Set_Point", "int"),
+    11: MaestroInformation(11, "Active_Set_Point", "temperature"),
     12: MaestroInformation(12, "RPM_Fam_Fume", "int"),
     13: MaestroInformation(13, "RPM_WormWheel", "int"),
     14: MaestroInformation(14, "T3_Temperature", "temperature"),

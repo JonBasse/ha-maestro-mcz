@@ -75,6 +75,18 @@ This integration stands on the shoulders of giants. Thanks to the community for 
 - **[hackximus/MCZ-Maestro-API](https://github.com/hackximus/MCZ-Maestro-API)**: Initial research into the Maestro API
 - **Chibald** and **Anthony L.** for their pioneering work in the MCZ community
 
+## Changelog
+
+### 1.1.1
+- **fix:** Target temperature now correctly reads from the stove's active setpoint (was always showing as unavailable)
+- **fix:** Connection loop now prevents duplicate concurrent loops on reload
+
+### 1.1.0
+- Production readiness improvements: validation, unique IDs, error handling
+
+### 1.0.0
+- Initial release with cloud support via Socket.IO
+
 ## Support
 
 If you encounter issues, please open an issue in this repository.
