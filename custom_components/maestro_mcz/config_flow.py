@@ -107,6 +107,7 @@ class MaestroOptionsFlow(config_entries.OptionsFlow):
                     self.config_entry,
                     data={**self.config_entry.data, "serial": serial, "mac": mac},
                 )
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
                 return self.async_create_entry(title="", data={})
 
         return self.async_show_form(

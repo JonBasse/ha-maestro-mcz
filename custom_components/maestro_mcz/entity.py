@@ -1,4 +1,5 @@
 """Base entity for Maestro MCZ."""
+from homeassistant.core import callback
 from homeassistant.helpers.entity import DeviceInfo, Entity
 
 from .const import DOMAIN
@@ -20,15 +21,18 @@ class MaestroEntity(Entity):
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
+        await super().async_added_to_hass()
         self._controller.add_listener(self._update_callback)
 
     async def async_will_remove_from_hass(self) -> None:
         """Unregister callbacks."""
         self._controller.remove_listener(self._update_callback)
+        await super().async_will_remove_from_hass()
 
-    def _update_callback(self):
+    @callback
+    def _update_callback(self) -> None:
         """Update the entity."""
-        self.schedule_update_ha_state()
+        self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
