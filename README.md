@@ -87,6 +87,24 @@ This integration stands on the shoulders of giants. Thanks to the community for 
 
 ## Changelog
 
+### 1.3.0
+- **fix:** Use Power register (reg 34) instead of Active_Mode for stove on/off — fixes HVAC mode control
+- **fix:** Temperature rounding uses `round()` instead of `int()` truncation, with 0.5°C step constraint
+- **fix:** Socket leak in config flow — `disconnect()` now called on connection failure
+- **fix:** Reconnect loop properly disconnects before retry and re-raises `CancelledError`
+- **fix:** Listener iteration uses snapshot to prevent corruption during notification
+- **fix:** Guard `fan_mode` and `preset_mode` against invalid input (crash prevention)
+- **fix:** Exponential backoff on reconnection (10s → 300s cap), resets on success
+- **fix:** `sio.wait()` timeout (10 min) prevents silent hangs on half-open connections
+- **fix:** Busy-loop fix when reconnection loop starts with an existing connection
+- **fix:** Clear stale state on disconnect — entities get fresh data on reconnect
+- **fix:** Platform setup before background task — entities register listeners before data arrives
+- **fix:** Options flow validates connection with new credentials before persisting changes
+- **fix:** Modernize OptionsFlow to use base class `config_entry` property
+- **fix:** Add `super()` calls in entity lifecycle and use `async_write_ha_state()`
+- **test:** Test suite expanded from 66 to 119 tests — new coverage for entity, sensor, switch, climate, and controller message handling
+- **chore:** Pin CI GitHub Actions to SHA for supply chain safety
+
 ### 1.2.0
 - **feat:** Fan mode and power level presets on climate entity (#8)
 - **feat:** Options flow to reconfigure serial/MAC after setup (#8)

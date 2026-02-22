@@ -2,7 +2,7 @@
 
 ## Project
 Home Assistant custom integration for **MCZ Maestro pellet stoves** via cloud Socket.IO.
-Distributed through HACS. Version 1.2.0. Domain: `maestro_mcz`.
+Distributed through HACS. Version 1.3.0. Domain: `maestro_mcz`.
 
 ## Structure
 ```
@@ -24,9 +24,12 @@ custom_components/maestro_mcz/
 tests/
 ├── conftest.py          # Shared controller fixture with mocked Socket.IO
 ├── test_types.py        # Protocol type tests
-├── test_controller.py   # Controller logic tests
-├── test_climate.py      # Climate entity tests
-└── test_config_flow.py  # Config flow validation tests
+├── test_controller.py   # Controller logic tests (send_command, info frame, reconnect, message handling)
+├── test_climate.py      # Climate entity tests (HVAC, temperature, fan, preset)
+├── test_config_flow.py  # Config flow validation tests
+├── test_entity.py       # Base entity tests (lifecycle, availability, device info)
+├── test_sensor.py       # Sensor entity tests (native_value, init, device class)
+└── test_switch.py       # Switch entity tests (is_on, turn_on/off, commands)
 
 .github/workflows/ci.yml # CI: ruff lint, pytest, HACS validation, hassfest
 pyproject.toml            # pytest + ruff configuration
@@ -41,7 +44,11 @@ docs/plans/               # Implementation plans
 - State change detection: only notifies listeners when values actually differ
 - Duplicate connection loop guard: re-entry check prevents concurrent loops on reload
 - `send_command` raises `HomeAssistantError` on failures (surfaced as HA toast notifications)
-- Persistent background connection loop with 10-second auto-reconnect
+- Persistent background connection loop with exponential backoff (10s → 300s cap, resets on success)
+- 10-minute timeout on `sio.wait()` to detect half-open connections
+- Stale state cleared on disconnect; fresh data on reconnect
+- Platform setup before background task — entities register listeners before data arrives
+- Options flow validates connection with new credentials before persisting
 - `ConfigEntryNotReady` raised on setup failure (15s timeout)
 
 ## Protocol
@@ -63,8 +70,9 @@ docs/plans/               # Implementation plans
 ## Testing
 - **Framework:** pytest + pytest-asyncio
 - **Run:** `.venv/bin/pytest tests/ -v` (requires venv with homeassistant + python-socketio installed)
-- **CI:** GitHub Actions runs ruff lint, pytest, HACS validation, and hassfest on push/PR
-- Controller tests mock Socket.IO via `AsyncMock`; climate tests use a lightweight `MagicMock` controller
+- **Suite:** 119 tests covering controller, climate, sensor, switch, entity, config flow, and protocol types
+- **CI:** GitHub Actions (SHA-pinned) runs ruff lint, pytest, HACS validation, and hassfest on push/PR
+- Controller tests mock Socket.IO via `AsyncMock`; entity tests use `MagicMock` controllers
 
 ## Commit Style
 - Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`
