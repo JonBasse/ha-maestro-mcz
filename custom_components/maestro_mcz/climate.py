@@ -92,9 +92,9 @@ class MaestroClimate(MaestroEntity, ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new target hvac mode."""
         if hvac_mode == HVACMode.HEAT:
-            await self._controller.send_command("Active_Mode", 1)
+            await self._controller.send_command("Power", 1)
         elif hvac_mode == HVACMode.OFF:
-            await self._controller.send_command("Active_Mode", 0)
+            await self._controller.send_command("Power", 0)
 
     @property
     def fan_mode(self) -> str | None:

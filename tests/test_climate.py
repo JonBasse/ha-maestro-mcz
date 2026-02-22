@@ -1,5 +1,7 @@
 """Tests for climate entity."""
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from custom_components.maestro_mcz.climate import MaestroClimate
 from homeassistant.components.climate import HVACAction, HVACMode
@@ -80,3 +82,21 @@ class TestPresetMode:
     def test_no_preset_when_off(self):
         climate = make_climate({"Stove_State": 0})
         assert climate.preset_mode is None
+
+
+@pytest.mark.asyncio
+async def test_set_hvac_mode_heat_sends_power_command():
+    """Turning on should send Power command (reg 34), not Active_Mode (reg 35)."""
+    climate = make_climate({})
+    climate._controller.send_command = AsyncMock()
+    await climate.async_set_hvac_mode(HVACMode.HEAT)
+    climate._controller.send_command.assert_awaited_once_with("Power", 1)
+
+
+@pytest.mark.asyncio
+async def test_set_hvac_mode_off_sends_power_command():
+    """Turning off should send Power command (reg 34), not Active_Mode (reg 35)."""
+    climate = make_climate({})
+    climate._controller.send_command = AsyncMock()
+    await climate.async_set_hvac_mode(HVACMode.OFF)
+    climate._controller.send_command.assert_awaited_once_with("Power", 0)
