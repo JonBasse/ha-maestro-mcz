@@ -4,6 +4,8 @@ import logging
 import socketio
 from typing import Any, Callable
 
+from homeassistant.exceptions import HomeAssistantError
+
 from .types import (
     MaestroCommand,
     MaestroMessageType,
@@ -94,18 +96,18 @@ class MaestroController:
         self._connected = True
         self._notify_listeners()
 
-        # Handshake/Join
-        await self._sio.emit(
-            "join",
-            {
-                "serialNumber": self._serial,
-                "macAddress": self._mac,
-                "type": "Android-App",
-            },
-        )
-
-        # Initial requests
-        await self._request_info()
+        try:
+            await self._sio.emit(
+                "join",
+                {
+                    "serialNumber": self._serial,
+                    "macAddress": self._mac,
+                    "type": "Android-App",
+                },
+            )
+            await self._request_info()
+        except Exception as e:
+            _LOGGER.error("Handshake failed after connect: %s", e)
 
     async def _on_disconnect(self):
         _LOGGER.warning("Disconnected from MCZ Cloud")
@@ -162,13 +164,13 @@ class MaestroController:
     async def send_command(self, command_name: str, value: Any):
         """Send command via 'chiedo' event."""
         if not self._sio.connected:
-            _LOGGER.warning("Cannot send command '%s': not connected", command_name)
-            return
+            raise HomeAssistantError(
+                f"Cannot send command '{command_name}': not connected to MCZ Cloud"
+            )
 
         cmd_def = MAESTRO_COMMANDS_BY_NAME.get(command_name)
         if not cmd_def:
-            _LOGGER.warning("Unknown command: '%s'", command_name)
-            return
+            raise HomeAssistantError(f"Unknown command: '{command_name}'")
 
         # Prepare payload
         payload = {
@@ -191,23 +193,23 @@ class MaestroController:
                 cmd_header = "C|WriteParametri|"
 
             processed_value = value
-            if value == "ON":
-                processed_value = 1
-            elif value == "OFF":
-                processed_value = 0
-            try:
-                processed_value = float(processed_value)
-            except ValueError:
-                pass
+            if isinstance(value, str):
+                if value.upper() == "ON":
+                    processed_value = 1
+                elif value.upper() == "OFF":
+                    processed_value = 0
+                else:
+                    try:
+                        processed_value = float(value)
+                    except ValueError:
+                        raise HomeAssistantError(
+                            f"Invalid value '{value}' for command '{command_name}'"
+                        )
 
             if cmd_def.command_type == "temperature":
                 processed_value = int(float(processed_value) * 2)
             elif cmd_def.command_type == "onoff40":
-                processed_value = int(processed_value)
-                if processed_value == 0:
-                    processed_value = 40
-                else:
-                    processed_value = 1
+                processed_value = 1 if int(processed_value) else 40
             elif cmd_def.command_type in ("onoff", "percentage", "int"):
                 processed_value = int(processed_value)
 

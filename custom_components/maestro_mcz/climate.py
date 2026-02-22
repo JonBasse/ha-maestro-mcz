@@ -67,7 +67,10 @@ class MaestroClimate(MaestroEntity, ClimateEntity):
         stove_state = self._controller.state.get("Stove_State")
         if stove_state is None:
             return None
-        state_id = int(stove_state)
+        try:
+            state_id = int(stove_state)
+        except (ValueError, TypeError):
+            return None
         if state_id == 0:
             return HVACAction.OFF
         if state_id in _HEATING_STATE_IDS:
