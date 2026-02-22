@@ -12,7 +12,7 @@ A Home Assistant integration for **MCZ Maestro** pellet stoves using the MCZ Clo
 
 ## Features
 
-- **Climate control**: Turn your stove on/off and set the target temperature
+- **Climate control**: Turn your stove on/off, set the target temperature, fan mode, and power level presets
 - **Sensors**: Real-time monitoring of ambient temperature, fume temperature, fan state, and stove state
 - **Switches**: Toggle silent mode, eco mode, sound effects, and chronostat
 - **Cloud-based**: Connects to `app.mcz.it` via Socket.IO -- no local network configuration required
@@ -22,7 +22,7 @@ A Home Assistant integration for **MCZ Maestro** pellet stoves using the MCZ Clo
 
 | Entity | Type | Description |
 |--------|------|-------------|
-| Climate | `climate` | Main stove control (on/off, target temperature, HVAC action) |
+| Climate | `climate` | Main stove control (on/off, target temperature, fan mode, power level presets, HVAC action) |
 | Stove State | `sensor` | Current stove state description (e.g. "Off", "Power 3", "Cooling") |
 | Ambient Temperature | `sensor` | Room temperature reported by the stove |
 | Fume Temperature | `sensor` | Exhaust fume temperature |
@@ -51,11 +51,15 @@ A Home Assistant integration for **MCZ Maestro** pellet stoves using the MCZ Clo
 1. Go to **Settings** > **Devices & Services**.
 2. Click **Add Integration**.
 3. Search for **Maestro MCZ**.
-4. Enter your stove's **Serial Number** and **MAC Address**.
-5. The integration will validate the connection to MCZ Cloud before completing setup.
+4. Enter your stove's **Serial Number** (digits only) and **MAC Address** (format: `AA:BB:CC:DD:EE:FF`).
+5. The integration will validate the format and test the connection to MCZ Cloud before completing setup.
+
+To reconfigure your serial number or MAC address after setup, go to the integration's **Options** (gear icon).
 
 ## Troubleshooting
 
+- **"Invalid serial number"** during setup: The serial number must contain only digits.
+- **"Invalid MAC address"** during setup: The MAC address must be in `AA:BB:CC:DD:EE:FF` or `AA-BB-CC-DD-EE-FF` format (hex characters only).
 - **"Unable to connect to MCZ Cloud"** during setup: Verify that your serial number and MAC address are correct. Ensure the MCZ Maestro app can connect to your stove.
 - **Entity shows "unavailable"**: The cloud connection may have dropped. The integration will automatically reconnect.
 - **Enable debug logging** for detailed diagnostics:
