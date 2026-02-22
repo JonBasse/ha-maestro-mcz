@@ -256,3 +256,103 @@ class TestDisconnectCleanup:
         controller._state = {"Ambient_Temperature": 21.5}
         await controller._on_disconnect()
         callback.assert_called_once()
+
+
+class TestOnRispondo:
+    @pytest.mark.asyncio
+    async def test_processes_info_message(self, controller):
+        """_on_rispondo should process Info-type messages."""
+        data = {"stringaRicevuta": "01|00|03"}
+        await controller._on_rispondo(data)
+        assert controller.state.get("Stove_State") == 0
+
+    @pytest.mark.asyncio
+    async def test_ignores_non_info_message(self, controller):
+        """_on_rispondo should ignore messages that aren't Info type."""
+        data = {"stringaRicevuta": "99|00|03"}
+        await controller._on_rispondo(data)
+        assert controller.state == {}
+
+    @pytest.mark.asyncio
+    async def test_ignores_missing_key(self, controller):
+        """_on_rispondo should handle data without stringaRicevuta."""
+        await controller._on_rispondo({"other": "data"})
+        assert controller.state == {}
+
+    @pytest.mark.asyncio
+    async def test_handles_exception_gracefully(self, controller):
+        """_on_rispondo should log errors, not crash."""
+        await controller._on_rispondo(None)  # Should not raise
+
+
+class TestSendCommandStringHandling:
+    @pytest.mark.asyncio
+    async def test_on_string(self, controller):
+        controller._sio.connected = True
+        controller._sio.emit = AsyncMock()
+        await controller.send_command("Power", "ON")
+        payload = controller._sio.emit.call_args[0][1]
+        assert payload["richiesta"].endswith("|1")
+
+    @pytest.mark.asyncio
+    async def test_off_string(self, controller):
+        controller._sio.connected = True
+        controller._sio.emit = AsyncMock()
+        await controller.send_command("Power", "OFF")
+        payload = controller._sio.emit.call_args[0][1]
+        assert payload["richiesta"].endswith("|40")
+
+    @pytest.mark.asyncio
+    async def test_getinfo_command(self, controller):
+        controller._sio.connected = True
+        controller._sio.emit = AsyncMock()
+        await controller.send_command("GetInfo", 0)
+        payload = controller._sio.emit.call_args[0][1]
+        assert payload["richiesta"] == "C|RecuperoInfo"
+
+    @pytest.mark.asyncio
+    async def test_invalid_string_value_raises(self, controller):
+        controller._sio.connected = True
+        with pytest.raises(HomeAssistantError, match="Invalid value"):
+            await controller.send_command("Power", "invalid")
+
+
+class TestOnConnect:
+    @pytest.mark.asyncio
+    async def test_emits_join(self, controller):
+        controller._sio.emit = AsyncMock()
+        controller._sio.connected = True
+        await controller._on_connect()
+        first_call = controller._sio.emit.call_args_list[0]
+        assert first_call[0][0] == "join"
+        join_data = first_call[0][1]
+        assert join_data["serialNumber"] == "12345"
+        assert join_data["macAddress"] == "AA:BB:CC:DD:EE:FF"
+
+    @pytest.mark.asyncio
+    async def test_requests_info_after_join(self, controller):
+        controller._sio.emit = AsyncMock()
+        controller._sio.connected = True
+        await controller._on_connect()
+        assert controller._sio.emit.call_count >= 2
+
+    @pytest.mark.asyncio
+    async def test_sets_connected_true(self, controller):
+        controller._sio.emit = AsyncMock()
+        controller._sio.connected = True
+        await controller._on_connect()
+        assert controller.connected is True
+
+
+class TestNotifyListenersExceptionHandling:
+    def test_other_listeners_called_when_one_fails(self, controller):
+        """If one listener raises, others should still be called."""
+        calls = []
+        def bad_callback():
+            raise ValueError("boom")
+        def good_callback():
+            calls.append("called")
+        controller.add_listener(bad_callback)
+        controller.add_listener(good_callback)
+        controller._notify_listeners()
+        assert calls == ["called"]
