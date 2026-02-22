@@ -86,6 +86,13 @@ MAESTRO_COMMANDS: list[MaestroCommand] = [
     MaestroCommand("3wayvalve", 9, "onoff", "Diagnostics"),
 ]
 
+# Lookup by name. Note: Power (id=34) and Feeding_Screw (id=34) share an ID,
+# as do Profile (id=149) and Adaptive_Mode (id=149). This is intentional —
+# they are the same hardware register accessed with different value types.
+MAESTRO_COMMANDS_BY_NAME: dict[str, MaestroCommand] = {
+    c.name: c for c in MAESTRO_COMMANDS
+}
+
 # Stove States
 MAESTRO_STOVE_STATES: list[MaestroStoveState] = [
     MaestroStoveState(0, "Off", 0),
@@ -136,6 +143,10 @@ MAESTRO_STOVE_STATES: list[MaestroStoveState] = [
     MaestroStoveState(67, "Error A17 - ENDLESS SCREW JAM", 0),
     MaestroStoveState(69, "WAITING FOR SECURITY ALARMS", 0),
 ]
+
+MAESTRO_STOVE_STATES_BY_ID: dict[int, MaestroStoveState] = {
+    s.id: s for s in MAESTRO_STOVE_STATES
+}
 
 # Information Fields (Position in Info Frame -> Definition)
 # Position 0 is MessageType, so index 1 is first data field

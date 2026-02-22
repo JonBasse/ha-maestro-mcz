@@ -7,8 +7,8 @@ from typing import Any, Callable
 from .types import (
     MaestroCommand,
     MaestroMessageType,
-    MAESTRO_COMMANDS,
-    MAESTRO_STOVE_STATES,
+    MAESTRO_COMMANDS_BY_NAME,
+    MAESTRO_STOVE_STATES_BY_ID,
     MAESTRO_INFO,
     MaestroStoveState,
 )
@@ -141,14 +141,19 @@ class MaestroController:
                     )
                     continue
                 processed_value = self._convert_value(info_def.message_type, raw_value)
-                self._state[info_def.name] = processed_value
-                updates[info_def.name] = processed_value
+                if self._state.get(info_def.name) != processed_value:
+                    self._state[info_def.name] = processed_value
+                    updates[info_def.name] = processed_value
 
                 if info_def.name == "Stove_State":
                     stove_state = self._get_stove_state(raw_value)
                     if stove_state:
-                        self._state["Stove_State_Desc"] = stove_state.description
-                        self._state["Power"] = stove_state.on_or_off
+                        if self._state.get("Stove_State_Desc") != stove_state.description:
+                            self._state["Stove_State_Desc"] = stove_state.description
+                            updates["Stove_State_Desc"] = stove_state.description
+                        if self._state.get("Power") != stove_state.on_or_off:
+                            self._state["Power"] = stove_state.on_or_off
+                            updates["Power"] = stove_state.on_or_off
 
         if updates:
             _LOGGER.debug("State updates: %s", updates)
@@ -160,7 +165,7 @@ class MaestroController:
             _LOGGER.warning("Cannot send command '%s': not connected", command_name)
             return
 
-        cmd_def = next((c for c in MAESTRO_COMMANDS if c.name == command_name), None)
+        cmd_def = MAESTRO_COMMANDS_BY_NAME.get(command_name)
         if not cmd_def:
             _LOGGER.warning("Unknown command: '%s'", command_name)
             return
@@ -224,7 +229,4 @@ class MaestroController:
         return value
 
     def _get_stove_state(self, state_id: int) -> MaestroStoveState | None:
-        for s in MAESTRO_STOVE_STATES:
-            if s.id == state_id:
-                return s
-        return None
+        return MAESTRO_STOVE_STATES_BY_ID.get(state_id)
