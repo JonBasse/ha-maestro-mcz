@@ -18,5 +18,20 @@
         "abort": {
             "already_configured": "This stove is already configured."
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Reconfigure MCZ Maestro Stove",
+                "data": {
+                    "serial": "Serial Number",
+                    "mac": "MAC Address"
+                }
+            }
+        },
+        "error": {
+            "invalid_serial": "Serial number must contain only digits.",
+            "invalid_mac": "MAC address must be in XX:XX:XX:XX:XX:XX format."
+        }
     }
 }

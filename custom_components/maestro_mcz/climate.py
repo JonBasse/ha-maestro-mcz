@@ -38,10 +38,14 @@ class MaestroClimate(MaestroEntity, ClimateEntity):
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.TURN_OFF
         | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.FAN_MODE
+        | ClimateEntityFeature.PRESET_MODE
     )
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
     _attr_min_temp = 10
     _attr_max_temp = 35
+    _attr_fan_modes = ["1", "2", "3", "4", "5", "auto"]
+    _attr_preset_modes = ["Power 1", "Power 2", "Power 3", "Power 4", "Power 5"]
     _attr_name = None
 
     def __init__(self, controller: MaestroController):
@@ -90,3 +94,37 @@ class MaestroClimate(MaestroEntity, ClimateEntity):
             await self._controller.send_command("Active_Mode", 1)
         elif hvac_mode == HVACMode.OFF:
             await self._controller.send_command("Active_Mode", 0)
+
+    @property
+    def fan_mode(self) -> str | None:
+        """Return the current fan mode."""
+        value = self._controller.state.get("Fan_State")
+        if value is None:
+            return None
+        return str(int(value)) if int(value) > 0 else "auto"
+
+    @property
+    def preset_mode(self) -> str | None:
+        """Return the current preset mode based on stove power state."""
+        stove_state = self._controller.state.get("Stove_State")
+        if stove_state is None:
+            return None
+        try:
+            state_id = int(stove_state)
+        except (ValueError, TypeError):
+            return None
+        if 11 <= state_id <= 15:
+            return f"Power {state_id - 10}"
+        return None
+
+    async def async_set_fan_mode(self, fan_mode: str) -> None:
+        """Set new fan mode."""
+        if fan_mode == "auto":
+            await self._controller.send_command("Fan_State", 0)
+        else:
+            await self._controller.send_command("Fan_State", int(fan_mode))
+
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Set new preset mode (power level)."""
+        level = int(preset_mode.split()[-1])
+        await self._controller.send_command("Power_Level", level)
