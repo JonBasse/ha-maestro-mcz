@@ -53,11 +53,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 try:
                     async with asyncio.timeout(10):
                         await controller.connect_once()
-                    await controller.disconnect()
                 except Exception:
                     _LOGGER.exception("Failed to connect to MCZ Cloud during setup")
+                    try:
+                        await controller.disconnect()
+                    except Exception:
+                        pass
                     errors["base"] = "cannot_connect"
                 else:
+                    await controller.disconnect()
                     return self.async_create_entry(
                         title=f"Maestro Cloud ({serial})",
                         data={
