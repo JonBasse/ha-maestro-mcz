@@ -103,12 +103,34 @@ class MaestroOptionsFlow(config_entries.OptionsFlow):
             elif not re.match(r"^([0-9A-F]{2}[:\-]){5}[0-9A-F]{2}$", mac):
                 errors["mac"] = "invalid_mac"
             else:
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data={**self.config_entry.data, "serial": serial, "mac": mac},
-                )
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                return self.async_create_entry(title="", data={})
+                # Validate connection with new credentials before persisting
+                controller = MaestroController(serial, mac)
+                try:
+                    async with asyncio.timeout(10):
+                        await controller.connect_once()
+                except Exception:
+                    _LOGGER.exception(
+                        "Failed to connect to MCZ Cloud with new credentials"
+                    )
+                    try:
+                        await controller.disconnect()
+                    except Exception:
+                        pass
+                    errors["base"] = "cannot_connect"
+                else:
+                    await controller.disconnect()
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry,
+                        data={
+                            **self.config_entry.data,
+                            "serial": serial,
+                            "mac": mac,
+                        },
+                    )
+                    await self.hass.config_entries.async_reload(
+                        self.config_entry.entry_id
+                    )
+                    return self.async_create_entry(title="", data={})
 
         return self.async_show_form(
             step_id="init",
