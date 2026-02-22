@@ -1,6 +1,7 @@
 """Config flow for Maestro MCZ integration."""
 import asyncio
 import logging
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -34,30 +35,37 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             serial = user_input["serial"].strip()
-            mac = user_input["mac"].strip()
+            mac = user_input["mac"].strip().upper()
 
-            # Prevent duplicate entries for the same stove
-            await self.async_set_unique_id(serial)
-            self._abort_if_unique_id_configured()
-
-            # Validate connection to MCZ Cloud
-            controller = MaestroController(serial, mac)
-            try:
-                async with asyncio.timeout(10):
-                    await controller.connect_once()
-                await controller.disconnect()
-            except Exception:
-                _LOGGER.exception("Failed to connect to MCZ Cloud during setup")
-                errors["base"] = "cannot_connect"
+            if not re.match(r"^\d+$", serial):
+                errors["serial"] = "invalid_serial"
+            elif not re.match(
+                r"^([0-9A-F]{2}[:\-]){5}[0-9A-F]{2}$", mac
+            ):
+                errors["mac"] = "invalid_mac"
             else:
-                return self.async_create_entry(
-                    title=f"Maestro Cloud ({serial})",
-                    data={
-                        "connection_type": "cloud",
-                        "serial": serial,
-                        "mac": mac,
-                    },
-                )
+                # Prevent duplicate entries for the same stove
+                await self.async_set_unique_id(serial)
+                self._abort_if_unique_id_configured()
+
+                # Validate connection to MCZ Cloud
+                controller = MaestroController(serial, mac)
+                try:
+                    async with asyncio.timeout(10):
+                        await controller.connect_once()
+                    await controller.disconnect()
+                except Exception:
+                    _LOGGER.exception("Failed to connect to MCZ Cloud during setup")
+                    errors["base"] = "cannot_connect"
+                else:
+                    return self.async_create_entry(
+                        title=f"Maestro Cloud ({serial})",
+                        data={
+                            "connection_type": "cloud",
+                            "serial": serial,
+                            "mac": mac,
+                        },
+                    )
 
         return self.async_show_form(
             step_id="user",

@@ -11,7 +11,9 @@
             }
         },
         "error": {
-            "cannot_connect": "Unable to connect to MCZ Cloud. Please verify your serial number and MAC address."
+            "cannot_connect": "Unable to connect to MCZ Cloud. Please verify your serial number and MAC address.",
+            "invalid_serial": "Serial number must contain only digits.",
+            "invalid_mac": "MAC address must be in XX:XX:XX:XX:XX:XX format."
         },
         "abort": {
             "already_configured": "This stove is already configured."
