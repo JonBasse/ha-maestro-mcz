@@ -31,6 +31,7 @@ class MaestroController:
         self._listeners: list[Callable] = []
         self._connected = False
         self._running = False
+        self._retry_delay = 10
 
         # Register events
         self._sio.on("connect", self._on_connect)
@@ -79,6 +80,7 @@ class MaestroController:
             try:
                 if not self._sio.connected:
                     await self._sio.connect(self.URL)
+                async with asyncio.timeout(600):
                     await self._sio.wait()
             except asyncio.CancelledError:
                 self._running = False
@@ -91,7 +93,11 @@ class MaestroController:
                     await self._sio.disconnect()
                 except Exception:
                     pass
-                await asyncio.sleep(10)
+                _LOGGER.info(
+                    "Reconnecting in %d seconds", self._retry_delay
+                )
+                await asyncio.sleep(self._retry_delay)
+                self._retry_delay = min(self._retry_delay * 2, 300)
 
     async def disconnect(self):
         self._running = False
@@ -101,6 +107,7 @@ class MaestroController:
     async def _on_connect(self):
         _LOGGER.info("Connected to MCZ Cloud")
         self._connected = True
+        self._retry_delay = 10
         self._notify_listeners()
 
         try:

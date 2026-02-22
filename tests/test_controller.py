@@ -1,7 +1,7 @@
 """Tests for MaestroController."""
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.exceptions import HomeAssistantError
 
@@ -170,3 +170,70 @@ class TestConnectGuard:
         controller._sio.connect = AsyncMock(side_effect=asyncio.CancelledError)
         with pytest.raises(asyncio.CancelledError):
             await controller.connect()
+
+
+class TestReconnectResilience:
+    @pytest.mark.asyncio
+    async def test_retry_delay_increases(self, controller):
+        """Retry delay should double after each failure (exponential backoff)."""
+        controller._sio.connected = False
+        controller._sio.connect = AsyncMock(side_effect=Exception("fail"))
+        controller._sio.disconnect = AsyncMock()
+
+        delays = []
+
+        async def capture_sleep(seconds):
+            delays.append(seconds)
+            controller._running = False  # Stop after capturing delay
+
+        with patch("custom_components.maestro_mcz.maestro.controller.asyncio.sleep", side_effect=capture_sleep):
+            await controller.connect()
+
+        assert delays[0] == 10  # Initial delay
+
+        # Reset and run again to see second delay
+        delays.clear()
+
+        with patch("custom_components.maestro_mcz.maestro.controller.asyncio.sleep", side_effect=capture_sleep):
+            await controller.connect()
+
+        assert delays[0] == 20  # Doubled
+
+    @pytest.mark.asyncio
+    async def test_retry_delay_caps_at_300(self, controller):
+        """Retry delay should never exceed 300 seconds."""
+        controller._retry_delay = 256
+        controller._sio.connected = False
+        controller._sio.connect = AsyncMock(side_effect=Exception("fail"))
+        controller._sio.disconnect = AsyncMock()
+
+        delays = []
+
+        async def capture_sleep(seconds):
+            delays.append(seconds)
+            controller._running = False
+
+        with patch("custom_components.maestro_mcz.maestro.controller.asyncio.sleep", side_effect=capture_sleep):
+            await controller.connect()
+
+        assert delays[0] == 256
+        assert controller._retry_delay == 300  # Capped, not 512
+
+    @pytest.mark.asyncio
+    async def test_retry_delay_resets_on_connect(self, controller):
+        """Successful connection should reset retry delay to initial value."""
+        controller._retry_delay = 160
+        await controller._on_connect()
+        assert controller._retry_delay == 10
+
+    @pytest.mark.asyncio
+    async def test_wait_called_when_already_connected(self, controller):
+        """wait() must be called even if sio.connected is already True (busy-loop fix)."""
+        controller._sio.connected = True
+        controller._sio.wait = AsyncMock(side_effect=asyncio.CancelledError)
+
+        with pytest.raises(asyncio.CancelledError):
+            await controller.connect()
+
+        controller._sio.wait.assert_awaited_once()
+        controller._sio.connect.assert_not_called()
