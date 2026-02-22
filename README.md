@@ -83,6 +83,18 @@ This integration stands on the shoulders of giants. Thanks to the community for 
 
 ## Changelog
 
+### 1.2.0
+- **feat:** Fan mode and power level presets on climate entity (#8)
+- **feat:** Options flow to reconfigure serial/MAC after setup (#8)
+- **feat:** Serial number and MAC address format validation in config flow (#4)
+- **fix:** send_command raises HomeAssistantError instead of failing silently (#5)
+- **fix:** Handshake errors now caught and logged (#5)
+- **fix:** Use dict lookups instead of linear scans for commands and states (#6)
+- **fix:** State change detection — only notify listeners when values change (#6)
+- **fix:** Use schedule_update_ha_state for sync callbacks (#7)
+- **docs:** Security considerations section in README (#1)
+- **chore:** Pin python-socketio to <6.0 (#9)
+
 ### 1.1.1
 - **fix:** Target temperature now correctly reads from the stove's active setpoint (was always showing as unavailable)
 - **fix:** Connection loop now prevents duplicate concurrent loops on reload
