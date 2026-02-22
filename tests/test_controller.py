@@ -251,7 +251,6 @@ class TestDisconnectCleanup:
     @pytest.mark.asyncio
     async def test_listeners_notified_on_disconnect(self, controller):
         """Listeners must be notified when state is cleared on disconnect."""
-        from unittest.mock import MagicMock
         callback = MagicMock()
         controller.add_listener(callback)
         controller._state = {"Ambient_Temperature": 21.5}

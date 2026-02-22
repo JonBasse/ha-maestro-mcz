@@ -36,10 +36,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN][entry.entry_id] = controller
 
+    # Set up platforms FIRST so entities register listeners before data arrives
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
     # Start persistent reconnection loop in background
     entry.async_create_background_task(hass, controller.connect(), "maestro_connect")
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Request fresh state so newly-registered entity listeners get initial data
+    try:
+        await controller.send_command("GetInfo", 0)
+    except Exception as exc:
+        _LOGGER.warning("Failed to request initial state refresh: %s", exc)
 
     return True
 
