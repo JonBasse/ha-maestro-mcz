@@ -102,7 +102,11 @@ class MaestroClimate(MaestroEntity, ClimateEntity):
         value = self._controller.state.get("Fan_State")
         if value is None:
             return None
-        return str(int(value)) if int(value) > 0 else "auto"
+        try:
+            int_value = int(value)
+        except (ValueError, TypeError):
+            return None
+        return str(int_value) if int_value > 0 else "auto"
 
     @property
     def preset_mode(self) -> str | None:
@@ -122,10 +126,12 @@ class MaestroClimate(MaestroEntity, ClimateEntity):
         """Set new fan mode."""
         if fan_mode == "auto":
             await self._controller.send_command("Fan_State", 0)
-        else:
+        elif fan_mode in self._attr_fan_modes:
             await self._controller.send_command("Fan_State", int(fan_mode))
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode (power level)."""
+        if preset_mode not in (self.preset_modes or []):
+            return
         level = int(preset_mode.split()[-1])
         await self._controller.send_command("Power_Level", level)

@@ -100,3 +100,36 @@ async def test_set_hvac_mode_off_sends_power_command():
     climate._controller.send_command = AsyncMock()
     await climate.async_set_hvac_mode(HVACMode.OFF)
     climate._controller.send_command.assert_awaited_once_with("Power", 0)
+
+
+def test_fan_mode_invalid_value_returns_none():
+    """fan_mode should return None on non-integer state, not crash."""
+    climate = make_climate({"Fan_State": "invalid"})
+    assert climate.fan_mode is None
+
+
+@pytest.mark.asyncio
+async def test_set_fan_mode_invalid_input():
+    """async_set_fan_mode should ignore invalid fan mode strings."""
+    climate = make_climate({})
+    climate._controller.send_command = AsyncMock()
+    await climate.async_set_fan_mode("invalid")
+    climate._controller.send_command.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_set_preset_mode_invalid_input():
+    """async_set_preset_mode should not crash on empty string."""
+    climate = make_climate({})
+    climate._controller.send_command = AsyncMock()
+    await climate.async_set_preset_mode("")
+    climate._controller.send_command.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_set_preset_mode_unknown_preset():
+    """async_set_preset_mode should ignore unknown presets."""
+    climate = make_climate({})
+    climate._controller.send_command = AsyncMock()
+    await climate.async_set_preset_mode("Power 99")
+    climate._controller.send_command.assert_not_awaited()
