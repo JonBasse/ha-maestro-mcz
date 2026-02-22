@@ -75,6 +75,12 @@ This integration stands on the shoulders of giants. Thanks to the community for 
 - **[hackximus/MCZ-Maestro-API](https://github.com/hackximus/MCZ-Maestro-API)**: Initial research into the Maestro API
 - **Chibald** and **Anthony L.** for their pioneering work in the MCZ community
 
+## Security Considerations
+
+- **Unencrypted connection**: The MCZ cloud endpoint (`app.mcz.it:9000`) uses plain HTTP. This is a limitation of the MCZ cloud server — the official MCZ Maestro app also uses HTTP. Serial numbers and MAC addresses are transmitted in cleartext.
+- **Credential model**: Access is controlled by serial number and MAC address only (no username/password). Anyone with these values can control the stove.
+- **Config storage**: Credentials are stored in Home Assistant's config entries (standard HA behavior, encrypted at rest if HA is configured for it).
+
 ## Changelog
 
 ### 1.1.1
