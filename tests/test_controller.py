@@ -1,6 +1,7 @@
 """Tests for MaestroController."""
+import asyncio
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from homeassistant.exceptions import HomeAssistantError
 
@@ -126,9 +127,35 @@ class TestSendCommand:
             await controller.send_command("NonExistent", 0)
 
 
+class TestController:
+    def test_listener_snapshot_safety(self, controller):
+        """Removing a listener during notification should not corrupt iteration."""
+        calls = []
+
+        def callback_a():
+            calls.append("a")
+            controller.remove_listener(callback_b)
+
+        def callback_b():
+            calls.append("b")
+
+        controller.add_listener(callback_a)
+        controller.add_listener(callback_b)
+        controller._notify_listeners()
+        assert calls == ["a", "b"]
+
+
 class TestConnectGuard:
     @pytest.mark.asyncio
     async def test_duplicate_connect_prevented(self, controller):
         controller._running = True
         await controller.connect()
         controller._sio.connect.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cancelled_error_propagates(self, controller):
+        """CancelledError must not be swallowed by the reconnect loop."""
+        controller._sio.connected = False
+        controller._sio.connect = AsyncMock(side_effect=asyncio.CancelledError)
+        with pytest.raises(asyncio.CancelledError):
+            await controller.connect()

@@ -58,7 +58,7 @@ class MaestroController:
             self._listeners.remove(callback)
 
     def _notify_listeners(self):
-        for callback in self._listeners:
+        for callback in list(self._listeners):
             try:
                 callback()
             except Exception as e:
@@ -80,10 +80,17 @@ class MaestroController:
                 if not self._sio.connected:
                     await self._sio.connect(self.URL)
                     await self._sio.wait()
+            except asyncio.CancelledError:
+                self._running = False
+                raise
             except Exception as e:
                 _LOGGER.error("Cloud connection error: %s", e)
                 self._connected = False
                 self._notify_listeners()
+                try:
+                    await self._sio.disconnect()
+                except Exception:
+                    pass
                 await asyncio.sleep(10)
 
     async def disconnect(self):
