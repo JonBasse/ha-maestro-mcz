@@ -44,6 +44,7 @@ class MaestroClimate(MaestroEntity, ClimateEntity):
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
     _attr_min_temp = 10
     _attr_max_temp = 35
+    _attr_target_temperature_step = 0.5
     _attr_fan_modes = ["1", "2", "3", "4", "5", "auto"]
     _attr_preset_modes = ["Power 1", "Power 2", "Power 3", "Power 4", "Power 5"]
     _attr_name = None

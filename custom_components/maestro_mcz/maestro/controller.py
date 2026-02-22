@@ -214,7 +214,7 @@ class MaestroController:
                         )
 
             if cmd_def.command_type == "temperature":
-                processed_value = int(float(processed_value) * 2)
+                processed_value = round(float(processed_value) * 2)
             elif cmd_def.command_type == "onoff40":
                 processed_value = 1 if int(processed_value) else 40
             elif cmd_def.command_type in ("onoff", "percentage", "int"):

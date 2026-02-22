@@ -115,6 +115,17 @@ class TestSendCommand:
         assert payload["richiesta"].endswith("|40")
 
     @pytest.mark.asyncio
+    async def test_temperature_rounding_up(self, controller):
+        """Temperature 21.8 should round up to 22.0 (value 44), not truncate to 21.5 (43)."""
+        controller._sio.connected = True
+        controller._sio.emit = AsyncMock()
+        await controller.send_command("Temperature_Setpoint", 21.8)
+        call_args = controller._sio.emit.call_args
+        payload = call_args[0][1]
+        # 21.8 * 2 = 43.6, round(43.6) = 44 → "C|WriteParametri|42|44"
+        assert payload["richiesta"] == "C|WriteParametri|42|44"
+
+    @pytest.mark.asyncio
     async def test_raises_when_disconnected(self, controller):
         controller._sio.connected = False
         with pytest.raises(HomeAssistantError, match="not connected"):
