@@ -2,7 +2,7 @@
 
 ## Project
 Home Assistant custom integration for **MCZ Maestro pellet stoves** via cloud Socket.IO.
-Distributed through HACS. Version 1.3.0. Domain: `maestro_mcz`.
+Distributed through HACS. Version 1.3.1. Domain: `maestro_mcz`.
 
 ## Structure
 ```
