@@ -1,7 +1,7 @@
 """Sensor entities for Maestro MCZ."""
 from homeassistant.components.sensor import (
-    SensorEntity,
     SensorDeviceClass,
+    SensorEntity,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -22,10 +22,12 @@ async def async_setup_entry(
     """Set up Maestro sensor platform."""
     controller: MaestroController = hass.data[DOMAIN][entry.entry_id]
 
+    temp_cls = SensorDeviceClass.TEMPERATURE
+    temp_unit = UnitOfTemperature.CELSIUS
     entities = [
         MaestroSensor(controller, "Stove_State_Desc", "Stove State", None),
-        MaestroSensor(controller, "Fume_Temperature", "Fume Temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
-        MaestroSensor(controller, "Ambient_Temperature", "Ambient Temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+        MaestroSensor(controller, "Fume_Temperature", "Fume Temperature", temp_cls, temp_unit),
+        MaestroSensor(controller, "Ambient_Temperature", "Ambient Temperature", temp_cls, temp_unit),
         MaestroSensor(controller, "Fan_State", "Fan State", None),
     ]
     async_add_entities(entities)

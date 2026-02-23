@@ -1,8 +1,8 @@
 """Tests for MaestroController."""
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from homeassistant.exceptions import HomeAssistantError
 
 

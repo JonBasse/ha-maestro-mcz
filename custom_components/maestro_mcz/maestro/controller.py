@@ -1,17 +1,16 @@
 """Maestro MCZ Controller."""
 import asyncio
 import logging
-import socketio
 from typing import Any, Callable
 
+import socketio
 from homeassistant.exceptions import HomeAssistantError
 
 from .types import (
-    MaestroCommand,
-    MaestroMessageType,
     MAESTRO_COMMANDS_BY_NAME,
-    MAESTRO_STOVE_STATES_BY_ID,
     MAESTRO_INFO,
+    MAESTRO_STOVE_STATES_BY_ID,
+    MaestroMessageType,
     MaestroStoveState,
 )
 

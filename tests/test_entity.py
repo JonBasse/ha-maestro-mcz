@@ -1,6 +1,7 @@
 """Tests for MaestroEntity base class."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from custom_components.maestro_mcz.entity import MaestroEntity
 from custom_components.maestro_mcz.maestro.controller import MaestroController

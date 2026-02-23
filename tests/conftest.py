@@ -1,6 +1,7 @@
 """Shared test fixtures."""
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from custom_components.maestro_mcz.maestro.controller import MaestroController
 

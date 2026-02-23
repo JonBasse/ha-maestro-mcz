@@ -1,8 +1,8 @@
 """Tests for config flow validation."""
 import re
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 SERIAL_PATTERN = r"^\d+$"
 MAC_PATTERN = r"^([0-9A-F]{2}[:\-]){5}[0-9A-F]{2}$"

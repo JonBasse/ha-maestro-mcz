@@ -2,9 +2,9 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from homeassistant.components.climate import HVACAction, HVACMode
 
 from custom_components.maestro_mcz.climate import MaestroClimate
-from homeassistant.components.climate import HVACAction, HVACMode
 
 
 def _make_climate(state: dict) -> MaestroClimate:

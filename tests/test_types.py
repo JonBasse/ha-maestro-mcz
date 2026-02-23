@@ -2,8 +2,8 @@
 from custom_components.maestro_mcz.maestro.types import (
     MAESTRO_COMMANDS,
     MAESTRO_COMMANDS_BY_NAME,
-    MAESTRO_STOVE_STATES_BY_ID,
     MAESTRO_INFO,
+    MAESTRO_STOVE_STATES_BY_ID,
 )
 
 

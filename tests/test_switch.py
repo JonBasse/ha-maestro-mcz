@@ -1,9 +1,10 @@
 """Tests for MaestroSwitch entities."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from custom_components.maestro_mcz.switch import MaestroSwitch
+import pytest
+
 from custom_components.maestro_mcz.maestro.controller import MaestroController
+from custom_components.maestro_mcz.switch import MaestroSwitch
 
 
 @pytest.fixture
