@@ -177,7 +177,7 @@ class MaestroController:
 
     async def send_command(self, command_name: str, value: Any):
         """Send command via 'chiedo' event."""
-        if not self._sio.connected:
+        if not self._connected:
             raise HomeAssistantError(
                 f"Cannot send command '{command_name}': not connected to MCZ Cloud"
             )

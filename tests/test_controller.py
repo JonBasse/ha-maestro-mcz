@@ -94,7 +94,7 @@ class TestProcessInfoFrame:
 class TestSendCommand:
     @pytest.mark.asyncio
     async def test_temperature_encoding(self, controller):
-        controller._sio.connected = True
+        controller._connected = True
         await controller.send_command("Temperature_Setpoint", 21.5)
         controller._sio.emit.assert_called_once()
         payload = controller._sio.emit.call_args[0][1]
@@ -102,14 +102,14 @@ class TestSendCommand:
 
     @pytest.mark.asyncio
     async def test_onoff40_on(self, controller):
-        controller._sio.connected = True
+        controller._connected = True
         await controller.send_command("Power", 1)
         payload = controller._sio.emit.call_args[0][1]
         assert payload["richiesta"].endswith("|1")
 
     @pytest.mark.asyncio
     async def test_onoff40_off(self, controller):
-        controller._sio.connected = True
+        controller._connected = True
         await controller.send_command("Power", 0)
         payload = controller._sio.emit.call_args[0][1]
         assert payload["richiesta"].endswith("|40")
@@ -117,7 +117,7 @@ class TestSendCommand:
     @pytest.mark.asyncio
     async def test_temperature_rounding_up(self, controller):
         """Temperature 21.8 should round up to 22.0 (value 44), not truncate to 21.5 (43)."""
-        controller._sio.connected = True
+        controller._connected = True
         controller._sio.emit = AsyncMock()
         await controller.send_command("Temperature_Setpoint", 21.8)
         call_args = controller._sio.emit.call_args
@@ -127,15 +127,24 @@ class TestSendCommand:
 
     @pytest.mark.asyncio
     async def test_raises_when_disconnected(self, controller):
-        controller._sio.connected = False
+        controller._connected = False
         with pytest.raises(HomeAssistantError, match="not connected"):
             await controller.send_command("Power", 1)
 
     @pytest.mark.asyncio
     async def test_raises_for_unknown_command(self, controller):
-        controller._sio.connected = True
+        controller._connected = True
         with pytest.raises(HomeAssistantError, match="Unknown command"):
             await controller.send_command("NonExistent", 0)
+
+    @pytest.mark.asyncio
+    async def test_sends_when_connected_flag_set_but_sio_not(self, controller):
+        """send_command should use _connected flag, not sio.connected (race condition fix)."""
+        controller._connected = True
+        controller._sio.connected = False  # Library property not yet True
+        controller._sio.emit = AsyncMock()
+        await controller.send_command("GetInfo", 0)
+        controller._sio.emit.assert_called_once()
 
 
 class TestController:
@@ -288,7 +297,7 @@ class TestOnRispondo:
 class TestSendCommandStringHandling:
     @pytest.mark.asyncio
     async def test_on_string(self, controller):
-        controller._sio.connected = True
+        controller._connected = True
         controller._sio.emit = AsyncMock()
         await controller.send_command("Power", "ON")
         payload = controller._sio.emit.call_args[0][1]
@@ -296,7 +305,7 @@ class TestSendCommandStringHandling:
 
     @pytest.mark.asyncio
     async def test_off_string(self, controller):
-        controller._sio.connected = True
+        controller._connected = True
         controller._sio.emit = AsyncMock()
         await controller.send_command("Power", "OFF")
         payload = controller._sio.emit.call_args[0][1]
@@ -304,7 +313,7 @@ class TestSendCommandStringHandling:
 
     @pytest.mark.asyncio
     async def test_getinfo_command(self, controller):
-        controller._sio.connected = True
+        controller._connected = True
         controller._sio.emit = AsyncMock()
         await controller.send_command("GetInfo", 0)
         payload = controller._sio.emit.call_args[0][1]
@@ -312,7 +321,7 @@ class TestSendCommandStringHandling:
 
     @pytest.mark.asyncio
     async def test_invalid_string_value_raises(self, controller):
-        controller._sio.connected = True
+        controller._connected = True
         with pytest.raises(HomeAssistantError, match="Invalid value"):
             await controller.send_command("Power", "invalid")
 
@@ -321,7 +330,6 @@ class TestOnConnect:
     @pytest.mark.asyncio
     async def test_emits_join(self, controller):
         controller._sio.emit = AsyncMock()
-        controller._sio.connected = True
         await controller._on_connect()
         first_call = controller._sio.emit.call_args_list[0]
         assert first_call[0][0] == "join"
@@ -332,16 +340,25 @@ class TestOnConnect:
     @pytest.mark.asyncio
     async def test_requests_info_after_join(self, controller):
         controller._sio.emit = AsyncMock()
-        controller._sio.connected = True
         await controller._on_connect()
         assert controller._sio.emit.call_count >= 2
 
     @pytest.mark.asyncio
     async def test_sets_connected_true(self, controller):
         controller._sio.emit = AsyncMock()
-        controller._sio.connected = True
         await controller._on_connect()
         assert controller.connected is True
+
+    @pytest.mark.asyncio
+    async def test_getinfo_succeeds_when_sio_connected_false(self, controller):
+        """_on_connect should successfully send GetInfo even when sio.connected is False (race condition)."""
+        controller._sio.emit = AsyncMock()
+        controller._sio.connected = False  # Simulates library timing window
+        await controller._on_connect()
+        # Should still emit both join and GetInfo
+        assert controller._sio.emit.call_count >= 2
+        chiedo_call = controller._sio.emit.call_args_list[1]
+        assert chiedo_call[0][0] == "chiedo"
 
 
 class TestNotifyListenersExceptionHandling:

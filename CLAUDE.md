@@ -2,7 +2,7 @@
 
 ## Project
 Home Assistant custom integration for **MCZ Maestro pellet stoves** via cloud Socket.IO.
-Distributed through HACS. Version 1.3.1. Domain: `maestro_mcz`.
+Distributed through HACS. Version 1.3.2. Domain: `maestro_mcz`.
 
 ## Structure
 ```
@@ -70,7 +70,7 @@ docs/plans/               # Implementation plans
 ## Testing
 - **Framework:** pytest + pytest-asyncio
 - **Run:** `.venv/bin/pytest tests/ -v` (requires venv with homeassistant + python-socketio installed)
-- **Suite:** 119 tests covering controller, climate, sensor, switch, entity, config flow, and protocol types
+- **Suite:** 121 tests covering controller, climate, sensor, switch, entity, config flow, and protocol types
 - **CI:** GitHub Actions (SHA-pinned) runs ruff lint, pytest, HACS validation, and hassfest on push/PR
 - Controller tests mock Socket.IO via `AsyncMock`; entity tests use `MagicMock` controllers
 
