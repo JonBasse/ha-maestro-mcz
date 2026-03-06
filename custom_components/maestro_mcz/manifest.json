@@ -1,7 +1,9 @@
 {
     "domain": "maestro_mcz",
     "name": "Maestro MCZ",
-    "codeowners": ["@JonBasse"],
+    "codeowners": [
+        "@JonBasse"
+    ],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/JonBasse/ha-maestro-mcz",
@@ -11,5 +13,5 @@
     "requirements": [
         "python-socketio[client]>=5.0,<6.0"
     ],
-    "version": "1.3.2"
+    "version": "1.3.3"
 }
