@@ -250,11 +250,11 @@ class TestReconnectResilience:
 
 class TestDisconnectCleanup:
     @pytest.mark.asyncio
-    async def test_state_cleared_on_disconnect(self, controller):
-        """State dict must be cleared on disconnect to prevent stale data."""
+    async def test_state_preserved_on_disconnect(self, controller):
+        """State dict must be preserved on disconnect so entities keep last known values."""
         controller._state = {"Ambient_Temperature": 21.5, "Stove_State": 1}
         await controller._on_disconnect()
-        assert controller._state == {}
+        assert controller._state == {"Ambient_Temperature": 21.5, "Stove_State": 1}
         assert controller._connected is False
 
     @pytest.mark.asyncio
