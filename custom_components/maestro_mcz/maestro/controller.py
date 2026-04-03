@@ -162,6 +162,7 @@ class MaestroController:
         self._notify_listeners()
 
         try:
+            _LOGGER.debug("Emitting join for serial %s", self._serial)
             await self._sio.emit(
                 "join",
                 {
@@ -171,18 +172,38 @@ class MaestroController:
                 },
             )
             _LOGGER.info("Joined MCZ Cloud room, requesting initial state")
-            await self._request_info()
+            # Emit GetInfo directly — do NOT go through send_command() here.
+            # send_command checks self._connected, which can race with
+            # _on_disconnect if the server bounces us during the join await.
+            await self._sio.emit(
+                "chiedo",
+                {
+                    "serialNumber": self._serial,
+                    "macAddress": self._mac,
+                    "tipoChiamata": 1,
+                    "richiesta": "C|RecuperoInfo",
+                },
+            )
+            _LOGGER.info("Initial GetInfo request sent")
         except Exception as e:
-            _LOGGER.error("Handshake failed after connect: %s", e)
+            _LOGGER.error("Handshake failed after connect: %s", e, exc_info=True)
 
-        # Start periodic polling for fresh data
-        self._stop_polling()
-        self._poll_task = asyncio.create_task(self._periodic_poll())
+        # Start periodic polling for fresh data (only if still connected)
+        if self._connected:
+            self._stop_polling()
+            self._poll_task = asyncio.create_task(self._periodic_poll())
+        else:
+            _LOGGER.warning(
+                "Disconnected during _on_connect — skipping periodic poll start"
+            )
 
     async def _on_disconnect(self):
         _LOGGER.warning("Disconnected from MCZ Cloud (serial %s)", self._serial)
+        was_connected = self._connected
         self._connected = False
         self._stop_polling()
+        if was_connected:
+            _LOGGER.info("Connection was active, notifying listeners of disconnect")
         # Keep last known state — entities use self.connected for availability,
         # so stale values won't be shown. Clearing state caused entities to
         # flash "unavailable" with no data during brief reconnect cycles.

@@ -39,14 +39,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up platforms FIRST so entities register listeners before data arrives
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Start persistent reconnection loop in background
+    # Start persistent reconnection loop in background.
+    # _on_connect already sends the initial GetInfo via direct emit (bypassing
+    # send_command's _connected guard to avoid the connect/disconnect race).
     entry.async_create_background_task(hass, controller.connect(), "maestro_connect")
-
-    # Request fresh state so newly-registered entity listeners get initial data
-    try:
-        await controller.send_command("GetInfo", 0)
-    except Exception as exc:
-        _LOGGER.warning("Failed to request initial state refresh: %s", exc)
 
     return True
 
