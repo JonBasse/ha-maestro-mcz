@@ -1,6 +1,7 @@
 """Maestro MCZ Controller."""
 import asyncio
 import logging
+import time
 from typing import Any, Callable
 
 import socketio
@@ -16,6 +17,10 @@ from .types import (
 
 _LOGGER = logging.getLogger(__name__)
 
+POLL_INTERVAL = 120  # seconds between periodic GetInfo requests
+RECONNECT_BASE_DELAY = 10
+RECONNECT_MAX_DELAY = 300
+
 
 class MaestroController:
     """Maestro Controller handling Cloud Socket.IO connection."""
@@ -25,12 +30,17 @@ class MaestroController:
     def __init__(self, serial: str, mac: str):
         self._serial = serial
         self._mac = mac
-        self._sio = socketio.AsyncClient(logger=False, engineio_logger=False)
+        # Disable built-in reconnection — we manage our own loop
+        self._sio = socketio.AsyncClient(
+            logger=False, engineio_logger=False, reconnection=False,
+        )
         self._state: dict[str, Any] = {}
         self._listeners: list[Callable] = []
         self._connected = False
         self._running = False
-        self._retry_delay = 10
+        self._retry_delay = RECONNECT_BASE_DELAY
+        self._poll_task: asyncio.Task | None = None
+        self._last_data_at: float = 0.0
 
         # Register events
         self._sio.on("connect", self._on_connect)
@@ -70,7 +80,11 @@ class MaestroController:
         await self._sio.connect(self.URL)
 
     async def connect(self):
-        """Connect to MCZ Cloud with automatic reconnection."""
+        """Connect to MCZ Cloud with automatic reconnection.
+
+        Socket.IO's built-in ping/pong (25s interval + 20s timeout) detects
+        dead connections, so we don't need an artificial timeout on wait().
+        """
         if self._running:
             _LOGGER.warning("Connection loop already running, skipping duplicate")
             return
@@ -78,35 +92,73 @@ class MaestroController:
         while self._running:
             try:
                 if not self._sio.connected:
+                    _LOGGER.info(
+                        "Connecting to MCZ Cloud at %s for serial %s",
+                        self.URL, self._serial,
+                    )
                     await self._sio.connect(self.URL)
-                async with asyncio.timeout(600):
-                    await self._sio.wait()
+                # Block until the server disconnects us or the transport dies.
+                # No artificial timeout — engineio ping/pong handles liveness.
+                await self._sio.wait()
             except asyncio.CancelledError:
                 self._running = False
                 raise
             except Exception as e:
-                _LOGGER.error("Cloud connection error: %s", e)
+                _LOGGER.warning("Cloud connection lost: %s", e)
                 self._connected = False
+                self._stop_polling()
                 self._notify_listeners()
                 try:
                     await self._sio.disconnect()
                 except Exception:
                     pass
-                _LOGGER.info(
-                    "Reconnecting in %d seconds", self._retry_delay
-                )
-                await asyncio.sleep(self._retry_delay)
-                self._retry_delay = min(self._retry_delay * 2, 300)
+                if self._running:
+                    _LOGGER.info(
+                        "Reconnecting in %ds", self._retry_delay,
+                    )
+                    await asyncio.sleep(self._retry_delay)
+                    self._retry_delay = min(
+                        self._retry_delay * 2, RECONNECT_MAX_DELAY,
+                    )
 
     async def disconnect(self):
         self._running = False
+        self._stop_polling()
         if self._sio.connected:
             await self._sio.disconnect()
 
+    def _stop_polling(self):
+        """Cancel the periodic poll task if running."""
+        if self._poll_task and not self._poll_task.done():
+            self._poll_task.cancel()
+            self._poll_task = None
+
+    async def _periodic_poll(self):
+        """Periodically request fresh state from the stove."""
+        try:
+            while self._connected:
+                await asyncio.sleep(POLL_INTERVAL)
+                if not self._connected:
+                    break
+                try:
+                    await self._request_info()
+                    _LOGGER.debug("Periodic GetInfo poll sent")
+                except Exception as e:
+                    _LOGGER.warning("Periodic poll failed: %s", e)
+                # Log staleness warning if no data received recently
+                if self._last_data_at:
+                    age = time.monotonic() - self._last_data_at
+                    if age > POLL_INTERVAL * 3:
+                        _LOGGER.warning(
+                            "No data from stove in %.0fs despite polling", age,
+                        )
+        except asyncio.CancelledError:
+            pass
+
     async def _on_connect(self):
-        _LOGGER.info("Connected to MCZ Cloud")
+        _LOGGER.info("Connected to MCZ Cloud for serial %s", self._serial)
         self._connected = True
-        self._retry_delay = 10
+        self._retry_delay = RECONNECT_BASE_DELAY
         self._notify_listeners()
 
         try:
@@ -118,27 +170,47 @@ class MaestroController:
                     "type": "Android-App",
                 },
             )
+            _LOGGER.info("Joined MCZ Cloud room, requesting initial state")
             await self._request_info()
         except Exception as e:
             _LOGGER.error("Handshake failed after connect: %s", e)
 
+        # Start periodic polling for fresh data
+        self._stop_polling()
+        self._poll_task = asyncio.ensure_future(self._periodic_poll())
+
     async def _on_disconnect(self):
-        _LOGGER.warning("Disconnected from MCZ Cloud")
+        _LOGGER.warning("Disconnected from MCZ Cloud (serial %s)", self._serial)
         self._connected = False
-        self._state.clear()
+        self._stop_polling()
+        # Keep last known state — entities use self.connected for availability,
+        # so stale values won't be shown. Clearing state caused entities to
+        # flash "unavailable" with no data during brief reconnect cycles.
         self._notify_listeners()
 
     async def _on_rispondo(self, data):
         """Handle 'rispondo' event."""
         try:
+            self._last_data_at = time.monotonic()
             if "stringaRicevuta" in data:
                 message = data["stringaRicevuta"]
-                _LOGGER.debug("Received cloud message: %s", message)
                 parts = message.split("|")
-                if parts and parts[0] == MaestroMessageType.Info.value:
+                msg_type = parts[0] if parts else "empty"
+                _LOGGER.debug(
+                    "Received cloud message type=%s len=%d",
+                    msg_type, len(message),
+                )
+                if msg_type == MaestroMessageType.Info.value:
                     self._process_info_frame(parts)
+                else:
+                    _LOGGER.debug("Non-info message type: %s", msg_type)
+            else:
+                _LOGGER.debug(
+                    "Received rispondo without stringaRicevuta: keys=%s",
+                    list(data.keys()),
+                )
         except Exception as e:
-            _LOGGER.error("Error processing cloud message: %s", e)
+            _LOGGER.error("Error processing cloud message: %s", e, exc_info=True)
 
     def _process_info_frame(self, parts: list[str]):
         """Process the Info frame."""
@@ -172,7 +244,7 @@ class MaestroController:
                             updates["Power"] = stove_state.on_or_off
 
         if updates:
-            _LOGGER.debug("State updates: %s", updates)
+            _LOGGER.info("State updates (%d fields): %s", len(updates), updates)
             self._notify_listeners()
 
     async def send_command(self, command_name: str, value: Any):
