@@ -8,6 +8,9 @@ from custom_components.maestro_mcz.maestro.types import (
 
 
 def test_commands_by_name_has_all_commands():
+    # Check no duplicate names silently shadow each other
+    names = [c.name for c in MAESTRO_COMMANDS]
+    assert len(names) == len(set(names)), f"Duplicate command names: {[n for n in names if names.count(n) > 1]}"
     assert len(MAESTRO_COMMANDS_BY_NAME) == len(MAESTRO_COMMANDS)
 
 

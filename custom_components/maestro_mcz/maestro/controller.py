@@ -177,7 +177,7 @@ class MaestroController:
 
         # Start periodic polling for fresh data
         self._stop_polling()
-        self._poll_task = asyncio.ensure_future(self._periodic_poll())
+        self._poll_task = asyncio.create_task(self._periodic_poll())
 
     async def _on_disconnect(self):
         _LOGGER.warning("Disconnected from MCZ Cloud (serial %s)", self._serial)

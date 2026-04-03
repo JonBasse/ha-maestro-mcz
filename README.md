@@ -17,6 +17,8 @@ A Home Assistant integration for **MCZ Maestro** pellet stoves using the MCZ Clo
 - **Switches**: Toggle silent mode, eco mode, sound effects, and chronostat
 - **Cloud-based**: Connects to `app.mcz.it` via Socket.IO -- no local network configuration required
 - **Real-time updates**: WebSocket push notifications for instant state feedback
+- **Automatic reconnection**: Exponential backoff with dead-connection detection via engineio ping/pong
+- **Periodic polling**: Requests fresh data every 120s to keep sensors current even without cloud push
 
 ## Entities
 
@@ -61,7 +63,7 @@ To reconfigure your serial number or MAC address after setup, go to the integrat
 - **"Invalid serial number"** during setup: The serial number must contain only digits.
 - **"Invalid MAC address"** during setup: The MAC address must be in `AA:BB:CC:DD:EE:FF` or `AA-BB-CC-DD-EE-FF` format (hex characters only).
 - **"Unable to connect to MCZ Cloud"** during setup: Verify that your serial number and MAC address are correct. Ensure the MCZ Maestro app can connect to your stove.
-- **Entity shows "unavailable"**: The cloud connection may have dropped. The integration will automatically reconnect.
+- **Entity shows "unavailable"**: The cloud connection may have dropped. The integration will automatically reconnect. Last known values are preserved during brief reconnect cycles.
 - **Enable debug logging** for detailed diagnostics:
 
 ```yaml
@@ -86,6 +88,23 @@ This integration stands on the shoulders of giants. Thanks to the community for 
 - **Config storage**: Credentials are stored in Home Assistant's config entries (standard HA behavior, encrypted at rest if HA is configured for it).
 
 ## Changelog
+
+### 1.4.0
+- **fix:** Remove 600s artificial timeout that killed healthy Socket.IO connections every 10 minutes
+- **fix:** Disable socketio built-in reconnection to prevent conflict with the controller's own reconnection loop
+- **fix:** Preserve state on disconnect — entities keep last known values during brief reconnect cycles instead of flashing "unavailable"
+- **feat:** Periodic `GetInfo` polling every 120s keeps sensor data fresh when the cloud doesn't push updates
+- **feat:** Staleness detection warns in logs if no data received in 360s despite active polling
+- **feat:** Connection lifecycle events (connect, join, disconnect, reconnect) now logged at INFO level
+- **chore:** Improved error tracing with full stack traces in message processing
+
+### 1.3.3
+- **chore:** Bump version for HACS submission
+- **chore:** Add MIT license (required for HACS)
+
+### 1.3.1
+- **fix:** Use `_connected` flag in `send_command` guard to prevent race condition
+- **chore:** CI and lint fixes
 
 ### 1.3.0
 - **fix:** Use Power register (reg 34) instead of Active_Mode for stove on/off — fixes HVAC mode control

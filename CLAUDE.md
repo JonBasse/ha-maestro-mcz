@@ -2,7 +2,7 @@
 
 ## Project
 Home Assistant custom integration for **MCZ Maestro pellet stoves** via cloud Socket.IO.
-Distributed through HACS. Version 1.3.2. Domain: `maestro_mcz`.
+Distributed through HACS. Version 1.4.0. Domain: `maestro_mcz`.
 
 ## Structure
 ```
@@ -45,8 +45,11 @@ docs/plans/               # Implementation plans
 - Duplicate connection loop guard: re-entry check prevents concurrent loops on reload
 - `send_command` raises `HomeAssistantError` on failures (surfaced as HA toast notifications)
 - Persistent background connection loop with exponential backoff (10s → 300s cap, resets on success)
-- 10-minute timeout on `sio.wait()` to detect half-open connections
-- Stale state cleared on disconnect; fresh data on reconnect
+- Socket.IO built-in reconnection disabled; controller manages its own loop to avoid race conditions
+- Engineio ping/pong (25s + 20s timeout) detects dead connections — no artificial timeout on `sio.wait()`
+- State preserved on disconnect — entities use `controller.connected` for availability, preventing data loss during brief reconnect cycles
+- Periodic `GetInfo` polling every 120s keeps sensor data fresh when the cloud doesn't push updates
+- Staleness detection warns if no data received in 360s despite active polling
 - Platform setup before background task — entities register listeners before data arrives
 - Options flow validates connection with new credentials before persisting
 - `ConfigEntryNotReady` raised on setup failure (15s timeout)
@@ -70,7 +73,7 @@ docs/plans/               # Implementation plans
 ## Testing
 - **Framework:** pytest + pytest-asyncio
 - **Run:** `.venv/bin/pytest tests/ -v` (requires venv with homeassistant + python-socketio installed)
-- **Suite:** 121 tests covering controller, climate, sensor, switch, entity, config flow, and protocol types
+- **Suite:** 130+ tests covering controller, climate, sensor, switch, entity, config flow, and protocol types
 - **CI:** GitHub Actions (SHA-pinned) runs ruff lint, pytest, HACS validation, and hassfest on push/PR
 - Controller tests mock Socket.IO via `AsyncMock`; entity tests use `MagicMock` controllers
 

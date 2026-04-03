@@ -259,7 +259,7 @@ class TestDisconnectCleanup:
 
     @pytest.mark.asyncio
     async def test_listeners_notified_on_disconnect(self, controller):
-        """Listeners must be notified when state is cleared on disconnect."""
+        """Listeners must be notified on disconnect."""
         callback = MagicMock()
         controller.add_listener(callback)
         controller._state = {"Ambient_Temperature": 21.5}
@@ -373,3 +373,77 @@ class TestNotifyListenersExceptionHandling:
         controller.add_listener(good_callback)
         controller._notify_listeners()
         assert calls == ["called"]
+
+
+class TestPeriodicPoll:
+    @pytest.mark.asyncio
+    async def test_on_connect_starts_poll_task(self, controller):
+        """_on_connect should start a periodic poll task."""
+        controller._sio.emit = AsyncMock()
+        assert controller._poll_task is None
+        await controller._on_connect()
+        assert controller._poll_task is not None
+        assert not controller._poll_task.done()
+        controller._stop_polling()
+
+    @pytest.mark.asyncio
+    async def test_on_disconnect_stops_poll_task(self, controller):
+        """_on_disconnect should cancel the periodic poll task."""
+        controller._sio.emit = AsyncMock()
+        await controller._on_connect()
+        assert controller._poll_task is not None
+        await controller._on_disconnect()
+        assert controller._poll_task is None
+
+    @pytest.mark.asyncio
+    async def test_stop_polling_idempotent(self, controller):
+        """_stop_polling should be safe to call with no running task."""
+        assert controller._poll_task is None
+        controller._stop_polling()  # Should not raise
+        assert controller._poll_task is None
+
+    @pytest.mark.asyncio
+    async def test_rispondo_updates_last_data_at(self, controller):
+        """_on_rispondo should update _last_data_at timestamp."""
+        assert controller._last_data_at == 0.0
+        await controller._on_rispondo({"stringaRicevuta": "01|00"})
+        assert controller._last_data_at > 0.0
+
+    @pytest.mark.asyncio
+    async def test_rispondo_updates_last_data_at_even_for_non_info(self, controller):
+        """_last_data_at should update for any rispondo, not just Info messages."""
+        await controller._on_rispondo({"stringaRicevuta": "99|data"})
+        assert controller._last_data_at > 0.0
+
+    @pytest.mark.asyncio
+    async def test_periodic_poll_sends_getinfo(self, controller):
+        """Periodic poll should send GetInfo commands."""
+        controller._connected = True
+        controller._sio.emit = AsyncMock()
+
+        # Patch sleep to let one poll execute, then stop on second iteration
+        call_count = 0
+
+        async def quick_sleep(seconds):
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 2:
+                controller._connected = False
+
+        with patch("custom_components.maestro_mcz.maestro.controller.asyncio.sleep", side_effect=quick_sleep):
+            await controller._periodic_poll()
+
+        # Should have sent at least one GetInfo (chiedo event)
+        assert controller._sio.emit.call_count >= 1
+        chiedo_call = controller._sio.emit.call_args
+        assert chiedo_call[0][0] == "chiedo"
+
+    @pytest.mark.asyncio
+    async def test_disconnect_preserves_poll_cleanup(self, controller):
+        """Full disconnect should clean up polling."""
+        controller._sio.emit = AsyncMock()
+        await controller._on_connect()
+        poll_task = controller._poll_task
+        assert poll_task is not None
+        await controller.disconnect()
+        assert controller._poll_task is None

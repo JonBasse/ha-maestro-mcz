@@ -175,7 +175,3 @@ MAESTRO_INFO: dict[int, MaestroInformation] = {
     59: MaestroInformation(59, "Return_Temperature", "temperature"),
     60: MaestroInformation(60, "AntiFreeze", "onoff"),
 }
-
-# Derived commands (virtual)
-MAESTRO_INFO[-1] = MaestroInformation(-1, "Power", "onoff")
-MAESTRO_INFO[-2] = MaestroInformation(-2, "Diagnostics", "onoff")
